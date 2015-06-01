@@ -1,0 +1,19 @@
+Ethanol(¾Æ¾«): 1ppm = 1.88mg/m3
+1ppm = 0.76~0.77V
+
+2ppm = 0.58V
+3ppm = 0.52V
+4ppm = 0.46V
+
+5ppm = 0.43V
+
+6ppm = 0.38V
+7ppm = 0.36V
+8ppm = 0.34V
+9ppm = 0.32V
+10ppm = 0.30V
+
+20ppm = 0.21V
+30ppm =0.17V
+
+RS/R0 = 0.xxV
