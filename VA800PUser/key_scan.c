@@ -134,7 +134,11 @@ void TouchKey_Read(void)
             DeviceWork();
             if(DeviceStatus.FanMode == 1) FAN_SPEED_HIGH;
             else if(DeviceStatus.FanMode == 2) FAN_SPEED_LOW;
-            else FAN_SPEED_LOW;
+            else 
+            {
+                FAN_SPEED_LOW;
+                DeviceStatus.FanMode = 2;
+            }
         }
     }
 }

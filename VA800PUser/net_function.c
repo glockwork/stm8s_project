@@ -2,6 +2,8 @@
 
 
 NET_RECV    NetMode = {0};
+uint8_t RxRecvBuffer[BUFFERSIZE] = {0};
+uint16_t DataSize = 0;
 enum {ModeReady, TestMode, SetMode, ConnectAP, ConnectServer, ServerJoin, ServerOK} NetStatus;
 
 /*
@@ -159,14 +161,14 @@ void NetSendDataLength(void)
 }
 
 /*
-名称: void NetSendData()
+名称: void NetSendData(uint8_t *Data, uint16_t Length)
 功能: 发送数据
 形参: 无
 返回值：无
 */ 
-void NetSendData()
+void NetSendData(uint8_t *Data, uint16_t Length)
 {
-    UART1_SendString((uint8_t *)&NetMode.SendData, SEND_DATA_LENGTH);
+    UART1_SendString(Data, Length);
 }
 
 /*
@@ -243,6 +245,7 @@ void isRecvData(uint8_t *RxRecvData)
         {
             NetMode.RecvData[i] = RxRecvData[Index+7+i];
         }
+        UART3_SendString((uint8_t *)NetMode.RecvData, NetMode.RecvDataSize);
         NetMode.Status |= NET_RECV_DATA;
     }
 }
@@ -355,14 +358,18 @@ void isRecvConnect(uint8_t *RxRecvData)
 {
     uint8_t CONNECT[] = " CONNECT";
     uint8_t AL_CONNECT[] = " ALREADY CONNECTED";
-    uint16_t index1, index2;
+    uint8_t CONNECT_FAILED[] = " CONNECT Failed";
+    uint16_t index1, index2, index3;
     AL_CONNECT[0] = 17;
     CONNECT[0] = 7;
+    CONNECT_FAILED[0] = 14;
 
-    index1 = Index_KMP(RxRecvData, CONNECT, 1);
+    
     index2 = Index_KMP(RxRecvData, AL_CONNECT, 1);
+    index3 = Index_KMP(RxRecvData, CONNECT_FAILED, 1);
+    index1 = Index_KMP(RxRecvData, CONNECT, 1);
 
-    if(index1 > 0 && index2 == 0) NetMode.Status |= NET_CONNECT;
+    if(index1 > 0 && index2 == 0 && index3 == 0) NetMode.Status |= NET_CONNECT;
 }
 
 /*
@@ -374,7 +381,7 @@ void isRecvConnect(uint8_t *RxRecvData)
 void isConnectFailed(uint8_t *RxRecvData)
 {
     uint8_t CONNECT_FAILED[] = " CONNECT Failed";
-    CONNECT_FAILED[0] = 15;
+    CONNECT_FAILED[0] = 14;
 
     if(Index_KMP(RxRecvData, CONNECT_FAILED, 1)) 
     {
@@ -490,9 +497,14 @@ void NetModeErrorFix(void)
         break;
     case 5:
         if((NetMode.Status & NET_ERROR) && (NetMode.Status & NET_CLOSED)) NetModeConnectServer();
-        else if(NetMode.Status & NET_CLOSED) NetModeConnectServer();
+        
 //        else if(NetMode.Status & NET_FAIL) NetMode.ErrorCode = 8;
-        else if(NetMode.Status & NET_ALREADY_CONNECTED) NetStatus = ServerOK;
+        
+        else if(NetMode.Status & NET_CONNECT_FAILED) 
+        {
+            NetStatus = ConnectServer;
+            NetModeConnectAP();
+        }
         FixCount++;
         break;
 
@@ -511,14 +523,13 @@ void NetModeErrorFix(void)
         NetMode.ErrorCode = 80;
         ModeBreakDown++;
     }
+    
     if(TimeCount == MAX_TIME) 
     {
         NetStatus = ModeReady;
         NetMode.ErrorCode = 0;
         if(ModeBreakDown == MAX_FIX) NetMode.ErrorCode = 81;         // 标识模块损坏
     }
-    
-    NetMode.Status = NetMode.Status & (NET_CONNECT | NET_RECV_DATA);
 } 
 
 /*
@@ -529,6 +540,7 @@ void NetModeErrorFix(void)
 */ 
 void NetProcess(void)
 {
+    static uint8_t ReConnectCount = 0;
     switch(NetStatus)
     {
     case ModeReady:     // 上电发送模块复位命令后
@@ -537,8 +549,13 @@ void NetProcess(void)
             TestNetMode();
             NetStatus = TestMode;       // 进入测试模块
             NetMode.ErrorCode = 0;
+            NetMode.Status &= ~NET_READY;
         }
-        else if(NetMode.Status & NET_ERROR) NetMode.ErrorCode = 1;
+        else if(NetMode.Status & NET_ERROR) 
+        {
+            NetMode.ErrorCode = 1;
+            NetMode.Status &= ~NET_ERROR;
+        }
         break;
     case TestMode:      // 测试模块
         if(NetMode.Status & NET_OK)     // 测试模块OK
@@ -547,7 +564,11 @@ void NetProcess(void)
             SetNetMode(3);              // 配置模块
             NetMode.ErrorCode = 0;
         }
-        else if(NetMode.Status & NET_ERROR) NetMode.ErrorCode = 2;
+        else if(NetMode.Status & NET_ERROR) 
+        {
+            NetMode.ErrorCode = 2;
+            NetMode.Status &= ~NET_ERROR;
+        }
         break;
     case SetMode:               // 配置模块
         if(NetMode.Status & NET_OK)     // 配置OK
@@ -556,7 +577,11 @@ void NetProcess(void)
             NetStatus = ConnectAP;      // 复位模块，是配置生效，进入连接AP
             NetMode.ErrorCode = 0;
         }
-        else if(NetMode.Status & NET_ERROR) NetMode.ErrorCode = 3;
+        else if(NetMode.Status & NET_ERROR) 
+        {
+            NetMode.ErrorCode = 3;
+            NetMode.Status &= ~NET_ERROR;
+        }
         break;
     case ConnectAP:     // 连接AP
         if(NetMode.Status & NET_READY)  // 复位后，模块准备OK
@@ -564,8 +589,13 @@ void NetProcess(void)
             NetModeConnectAP();         // 发送连接模块命令
             NetStatus = ConnectServer;  // 进入连接服务器
             NetMode.ErrorCode = 0;
+            NetMode.Status &= ~NET_READY;
         }
-        else if(NetMode.Status & NET_ERROR) NetMode.ErrorCode = 1;
+        else if(NetMode.Status & NET_ERROR) 
+        {
+            NetMode.ErrorCode = 1;
+            NetMode.Status &= ~NET_ERROR;
+        }
         break;
     case ConnectServer:         // 连接服务器
         if(NetMode.Status & NET_OK)     // 连接AP OK
@@ -573,27 +603,66 @@ void NetProcess(void)
             NetModeConnectServer();     // 发送连接服务器命令
             NetStatus = ServerJoin;     // 进入连接服务器
             NetMode.ErrorCode = 0;
+            
         }
-        else if(NetMode.Status & NET_FAIL) NetMode.ErrorCode = 4;
+        else if(NetMode.Status & NET_ALREADY_CONNECTED) NetStatus = ServerOK;
+        else if(NetMode.Status & NET_FAIL) 
+        {
+            NetMode.ErrorCode = 4;
+            NetMode.Status &= ~NET_FAIL;
+        }
         break;
     case ServerJoin:
         if(NetMode.Status & NET_CONNECT) 
         {
             NetStatus = ServerOK;
             NetMode.ErrorCode = 0;
+            ReConnectCount = 0;
+        }
+        else if(NetMode.Status & NET_CLOSED) 
+        {
+            ReConnectCount++;
+            if(ReConnectCount >= 20)
+            {
+                NetMode.ErrorCode = 5;
+                NetStatus = ServerJoin;
+            }
+            else 
+            {
+                NetModeConnectServer();
+                NetMode.Status &= ~NET_CLOSED;
+            }
         }
         else NetMode.ErrorCode = 5;
         break;
     case ServerOK:
-        if(NetMode.Status & NET_ACTION_SEND) NetSendData();
-        else if(NetMode.Status & (NET_CLOSED | NET_ERROR)) 
+        if(NetMode.Status & NET_ACTION_SEND)
+        {
+            NetSendData((uint8_t *)&NetMode.SendData, 10);
+            NetMode.Status &= ~NET_ACTION_SEND;
+        }
+        else if(NetMode.Status & NET_CLOSED) 
+        {
+            ReConnectCount++;
+            if(ReConnectCount >= 20)
+            {
+                NetMode.ErrorCode = 5;
+                NetStatus = ServerJoin;
+            }
+            else 
+            {
+                NetModeConnectServer();
+                NetMode.Status &= ~NET_CLOSED;
+            }
+        }
+        else if(NetMode.Status & (NET_CLOSED | NET_ERROR | NET_CONNECT_FAILED)) 
         {
             NetStatus = ServerJoin;
             NetMode.ErrorCode = 5;
         }
         break;
     }
-    NetModeErrorFix();
+    NetMode.Status &= ~NET_OK;
 }
 
 /*

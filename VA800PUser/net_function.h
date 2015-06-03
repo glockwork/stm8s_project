@@ -4,9 +4,9 @@
 #include "stm8s.h"
 #include "main.h"
 
-#define BUFFERSIZE  265
+#define BUFFERSIZE  400
 #define SEND_DATA_LENGTH	10
-#define FAIL_COUNT_OVER     10  //连接失败次数上限
+#define FAIL_COUNT_OVER         10  //连接失败次数上限
 #define AP_Message        "AT+CWJAP=\"t.tt\",\"huangguozheng\"\r\n"
 #define Server_Message    "AT+CIPSTART=\"TCP\",\"192.168.191.1\",6000\r\n"
 
@@ -34,8 +34,8 @@ typedef struct
     uint16_t    Status;
     uint8_t     ErrorCode;
     uint8_t     Wait;
-    uint8_t     RecvData[10];
-    uint8_t     SendData[10];
+    uint8_t     RecvData[400];
+    uint8_t     SendData[128];
     uint8_t     RecvDataSize;
 } NET_RECV;
 
@@ -60,7 +60,7 @@ void isRecvAL_Connected(uint8_t *RxRecvData);
 void isRecvFail(uint8_t *RxRecvData);
 void isRecvConnect(uint8_t *RxRecvData);
 void NetSendDataLength(void);
-void NetSendData();
+void NetSendData(uint8_t *Data, uint16_t Length);
 void GetNetFlags(uint8_t *RxRecvData);
 void DataResolve(uint8_t *Data, uint16_t Length);
 void NetModeErrorFix(void);

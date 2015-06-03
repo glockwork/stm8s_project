@@ -35,8 +35,9 @@
   * @{
   */
 
-uint8_t RxRecvBuffer[BUFFERSIZE] = {0};
-int DataSize = 0;
+
+extern uint8_t RxRecvBuffer[BUFFERSIZE];
+extern uint16_t DataSize;
 extern NET_RECV    NetRecv;
 extern DEVICE_STATUS    DeviceStatus;
 
@@ -278,7 +279,15 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
      it is recommended to set a breakpoint on the following instruction.
      1 S
   */
+    static uint8_t TimeCount = 0;
+    
     DeviceStatus.Time_1_s = 1;
+    TimeCount++;
+    if(TimeCount >= 30)
+    {
+        DeviceStatus.Time_30_s = 1;
+        TimeCount = 0;
+    }
 
     TIM2_ClearITPendingBit(TIM2_IT_UPDATE);
  }
@@ -313,7 +322,8 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
    count++;
    if(count == 3)
    {
-        TouchKey_Read();
+        DeviceStatus.Time_30ms = 1;
+        
         count = 0;
    }
    TIM3_ClearITPendingBit(TIM3_IT_UPDATE);
@@ -358,7 +368,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     */
     uint8_t Recv;
 
-    if(UART1_GetITStatus(UART1_IT_RXNE ) != RESET)  
+    if(UART1_GetITStatus(UART1_IT_RXNE ) != RESET)  // 接收数据
     {
         Recv = UART1_ReceiveData8();
         RxRecvBuffer[DataSize++] = Recv;
@@ -527,15 +537,8 @@ INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
     NET_RECV++;
     if(NET_RECV == 100)
     {
-        if(UART1_GetFlagStatus(UART1_FLAG_IDLE) == SET)
-        {
-            if(DataSize != 0)
-            {
-                DataResolve(RxRecvBuffer, DataSize); 
-                NetProcess();
-                DataSize = 0;
-            }
-        }
+        DeviceStatus.Time_100ms = 1;
+        
         NET_RECV = 0;
     }
     

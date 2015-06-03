@@ -55,11 +55,6 @@ uint8_t I2Ct0StandbyState(void)
 */ 
 void I2C_RTC_Init(void)
 {
-    I2C_Cmd(DISABLE);
-    I2C_DeInit();
-    CLK_PeripheralClockConfig(CLK_PERIPHERAL_I2C, DISABLE);
-    GPIO_Init(GPIOE, GPIO_PIN_1, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOE, GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_I2C, ENABLE);
     I2C_Cmd( ENABLE);
     I2C_Init(400000, 0xA0, I2C_DUTYCYCLE_2, I2C_ACK_CURR, 

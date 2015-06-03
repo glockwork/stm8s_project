@@ -7,7 +7,7 @@
 #include "tim2.h"
 #include "tim3.h"
 #include "tim4.h"
-#include "alarm_function.h"
+//#include "alarm_function.h"
 #include "net_function.h"
 #include "pwm_out.h"
 #include "rt8563.h"
@@ -25,7 +25,10 @@ typedef struct
     uint8_t     FanMode;                 // 风扇运行模式，高、低、自动
     uint8_t     Battery;                // 电池电量
     uint16_t    AQI;                    // 空气质量
+    uint8_t     Time_30ms;              // 30ms标志位
+    uint8_t     Time_100ms;             // 100ms标志位
     uint8_t     Time_1_s;               // 1秒标志位
+    uint8_t     Time_30_s;              // 30秒标志位
 }DEVICE_STATUS;
 
 static void CLK_Config(void);
