@@ -280,7 +280,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     if(DeviceStatus.Disinfect == 1)
     {
         if(++DeviceStatus.T_6Min_Count != 1) LED_2_FLASH;        // 消毒指示灯闪 1s间隔
-        
+#if DEBUG               // 去掉计时功能
         if(DeviceStatus.T_6Min_Count == 6 * 60)                // 6分钟
         {
             ZWD_POWER_OFF;
@@ -288,6 +288,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
             DeviceStatus.T_6Min_Count = 0;
             DeviceStatus.Disinfect = 0;
         }
+#endif
     }
 
     TIM2_ClearITPendingBit(TIM2_IT_UPDATE);

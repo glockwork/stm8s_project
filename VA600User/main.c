@@ -19,10 +19,10 @@ void main(void)
     {   
         if(DeviceStatus.T_30ms_Out == 1)
         {
-#if 1
-            openings_check();                   // ¿ª¸Ç¼ì²â
+#if DEBUG
+            DeviceStatus.Openings = 1;          // ÎÞ¿ª¸Ç¼ì²â
 #else
-            DeviceStatus.Openings = 1;
+            openings_check();                   // ¿ª¸Ç¼ì²â            
 #endif
             feng_key_read();                    // ·çÉÈ¿ØÖÆ¼ü¼ì²â
             disinfect_key_read();               // Ïû¶¾¼ü¼ì²â

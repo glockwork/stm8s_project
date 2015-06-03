@@ -7,6 +7,8 @@
 #include "gpio.h"
 #include "key_scan.h"
 
+#define DEBUG   1
+
 typedef struct
 {
     uint8_t     T_30ms_Out;     // 30√Î≥¨ ±±Í÷æ
