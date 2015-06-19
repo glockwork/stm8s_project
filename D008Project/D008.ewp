@@ -17,7 +17,7 @@
         <debug>1</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state>STM8S207RB	STM8S207RB</state>
+          <state>STM8S207R8	STM8S207R8</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -249,7 +249,7 @@
         <option>
           <name>CCIncludePath2</name>
           <state>$PROJ_DIR$\..\Libraries\STM8S_StdPeriph_Driver\inc</state>
-          <state>$PROJ_DIR$\..\VA800PUser</state>
+          <state>$PROJ_DIR$\..\D008User</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -476,11 +476,11 @@
         </option>
         <option>
           <name>OCOutputOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>VA800P.hex</state>
+          <state>D008.hex</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -534,7 +534,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>VA800P.out</state>
+          <state>D008.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -598,7 +598,7 @@
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$TOOLKIT_DIR$\config\lnkstm8s207rb.icf</state>
+          <state>$TOOLKIT_DIR$\config\lnkstm8s207r8.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
@@ -801,7 +801,7 @@
         <debug>0</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state>STM8S207RB	STM8S207RB</state>
+          <state>STM8S207R8	STM8S207R8</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -1033,7 +1033,7 @@
         <option>
           <name>CCIncludePath2</name>
           <state>$PROJ_DIR$\..\Libraries\STM8S_StdPeriph_Driver\inc</state>
-          <state>$PROJ_DIR$\..\User</state>
+          <state>$PROJ_DIR$\..\D008User</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1264,7 +1264,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>VA800P.hex</state>
+          <state>D008.hex</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -1318,7 +1318,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>VA800P.out</state>
+          <state>D008.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -1678,43 +1678,28 @@
   <group>
     <name>User</name>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\adc.c</name>
+      <name>$PROJ_DIR$\..\D008User\basic_timer.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\gpio.c</name>
+      <name>$PROJ_DIR$\..\D008User\beep.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\key_scan.c</name>
+      <name>$PROJ_DIR$\..\D008User\function.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\main.c</name>
+      <name>$PROJ_DIR$\..\D008User\gpio.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\net_function.c</name>
+      <name>$PROJ_DIR$\..\D008User\key_scan.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\pwm_out.c</name>
+      <name>$PROJ_DIR$\..\D008User\main.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\rt8563.c</name>
+      <name>$PROJ_DIR$\..\D008User\stm8s_it.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\VA800PUser\stm8s_it.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\VA800PUser\tim2.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\VA800PUser\tim3.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\VA800PUser\tim4.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\VA800PUser\uart1.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\VA800PUser\uart3.c</name>
+      <name>$PROJ_DIR$\..\D008User\uart1.c</name>
     </file>
   </group>
 </project>
