@@ -181,9 +181,31 @@ void showFunction(uint8_t function, uint8_t state)
 // TM1628显示炉灯指示灯
 void showLight(void)
 {
+    uint8_t data = 0x08;
+
+    if(DeviceStatus.light == OFF) data = 0;
+    if(DeviceStatus.preheat == ON) data |= 0x01;
+  
     command(0xC2);
-    if(DeviceStatus.light) send_8bit(0x08);
-    else send_8bit(0);
+    send_8bit(data);
+
+    STB_H;
+}
+
+// TM1628显示预热指示灯
+void showPreheat(uint8_t sw)
+{
+    uint8_t data  = 0x01;       // 预热指示灯
+    
+    if(DeviceStatus.preheat == ON) data = 0x01;
+    else data = 0;
+    
+    if(DeviceStatus.light == ON) data |= 0x08;
+    
+    command(0xC2);
+    if(sw == ON) send_8bit(data);
+    else send_8bit(data & 0x08);
+    
     STB_H;
 }
 
@@ -421,6 +443,7 @@ void key_process(void)
         if(KEY[1] & 0x08) // 取消键
         {
             DeviceStatus.enterMode = ENTER_DEFINE;
+            DeviceStatus.preheat = 0;
             DeviceStatus.startWork = 0;
             DeviceStatus.workState = 16;
             DeviceStatus.workTime = 0;
@@ -439,9 +462,17 @@ void key_process(void)
                 
                 if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)
                 {
-                    if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];
-                    showTime(DeviceStatus.workTime, ON, ON);
-                    DeviceStatus.enterMode = ENTER_SET_TIME;
+                    if(DeviceStatus.startWork == OFF)   // 是否处于工作状态
+                    {
+                        if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];
+                        showTime(DeviceStatus.workTime, ON, ON);
+                        DeviceStatus.enterMode = ENTER_SET_TIME;
+                    }
+                    else
+                    {
+                        showTime(DeviceStatus.workTime, ON, ON);
+                        DeviceStatus.enterMode = ENTER_START_WORK;
+                    }
                 }
                 else if(DeviceStatus.enterMode == ENTER_START_WORK)
                 {

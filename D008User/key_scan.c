@@ -75,7 +75,9 @@ void code_key_read(void)	//每10ms执行一次
         if(DeviceStatus.enterMode == ENTER_DEFINE)                      // Code按键默认状态
         {
             showFunction(DeviceStatus.workState, ON);                   // 让功能指示灯常亮
-                
+            
+            if(((DeviceStatus.workState >= 9) && (DeviceStatus.workState <= 13)) || (DeviceStatus.workState == 15)) DeviceStatus.preheat = ON;
+            else DeviceStatus.preheat = OFF;
             if(DeviceStatus.workState == 14)
             {
                 DeviceStatus.up_Temperature = 0;
@@ -97,15 +99,18 @@ void code_key_read(void)	//每10ms执行一次
         {
             if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];      // 获取默认工作时间
             showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
+            showPreheat(ON);                                            // 显示预热指示灯
             DeviceStatus.startWork = ON;                                 // 设置工作指示标志
-          DeviceStatus.startWorkBeep = ON;
+            DeviceStatus.startWorkBeep = ON;
             DeviceStatus.enterMode = ENTER_START_WORK;
         }
         else if(DeviceStatus.enterMode == ENTER_START_WORK)             // Code按键开始工作状态
         {
-            DeviceStatus.startWork = OFF;                                 // 清除工作指示标志
+            DeviceStatus.startWork = OFF;                               // 清除工作指示标志
+            DeviceStatus.preheat = OFF;                                 // 清预热指示灯标志
             if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];      // 获取默认工作时间
             showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
+            showPreheat(ON);                                            // 显示预热指示灯
             DeviceStatus.enterMode = ENTER_SET_TIME;
         }
         else

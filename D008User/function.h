@@ -47,6 +47,7 @@ void key_process(void);
 void CodingSwitchPolling(void);
 void CodeProcess(int8_t direction);
 void showLight(void);
+void showPreheat(uint8_t sw);
 void showUpDownTemp(void);
 void showTime(uint16_t time, uint8_t sw, uint8_t dp);
 #endif

@@ -286,7 +286,11 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
 
     if(DeviceStatus.flashLight == 1)
     {
-        if(DeviceStatus.enterMode == ENTER_DEFINE) showFunction(DeviceStatus.workState, 1);
+        if(DeviceStatus.enterMode == ENTER_DEFINE) 
+        {
+            showFunction(DeviceStatus.workState, ON);
+            
+        }
         else if(DeviceStatus.enterMode == ENTER_SET_TIME) showTime(DeviceStatus.workTime, ON, ON);
         else if(DeviceStatus.enterMode == ENTER_START_WORK) 
         {
@@ -296,13 +300,21 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
         {
             if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
             else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, ON);
+            showPreheat(ON);
             showSymbol(DeviceStatus.hotUpDown);
         }
     }
     else if(DeviceStatus.flashLight >= 2)
     {
-        if(DeviceStatus.enterMode == ENTER_DEFINE) showFunction(DeviceStatus.workState, 0);
-        else if(DeviceStatus.enterMode == ENTER_SET_TIME) showTime(DeviceStatus.workTime, OFF, ON);
+        if(DeviceStatus.enterMode == ENTER_DEFINE) 
+        {
+            showFunction(DeviceStatus.workState, OFF);
+            
+        }
+        else if(DeviceStatus.enterMode == ENTER_SET_TIME)
+        {
+            showTime(DeviceStatus.workTime, OFF, ON);
+        }
         else if(DeviceStatus.enterMode == ENTER_START_WORK) 
         {
             showTime(DeviceStatus.workTime, ON, OFF);
@@ -320,6 +332,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
             {
                 if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, OFF);
                 else showTemp(DeviceStatus.down_Temperature, OFF);
+                showPreheat(OFF);
             }
         }
         

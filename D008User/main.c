@@ -17,7 +17,7 @@ void main(void)
     BEEP_LSICalibrationConfig(LSI_128kHz);
     /* GPIO configuration ------------------------------------------*/
     GPIO_Config_Init();
-    TIM2_Config();
+    
     TIM3_Config();
     TIM4_Config();
     UART1_Config();
@@ -28,6 +28,7 @@ void main(void)
     showAll();
     PowerOnBeep();
     clear();
+    TIM2_Config();
     
     showTemp(Temperature[DeviceStatus.workState], ON);
     showSymbol(SYMBOL_DEFAULT);
