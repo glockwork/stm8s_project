@@ -34,7 +34,7 @@ void UART1_Config(void)
 
     /* Enable the UART Transmit complete interrupt: this interrupt is generated 
      when the UART transmit Shift Register is empty */
-    //UART1_ITConfig(UART1_IT_RXNE_OR, ENABLE);
+    UART1_ITConfig(UART1_IT_RXNE_OR, ENABLE);
 
     /* Enable UART */
     UART1_Cmd(ENABLE);

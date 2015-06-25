@@ -184,7 +184,14 @@ void showLight(void)
     uint8_t data = 0x08;
 
     if(DeviceStatus.light == OFF) data = 0;
-    if(DeviceStatus.preheat == ON) data |= 0x01;
+    
+    if(DeviceStatus.enterMode != ENTER_PREHEAT)
+    {
+        if((DeviceStatus.preheat == ON) && (DeviceStatus.flashLight == 1)) data |= 0x01;
+    }
+    else data |= 0x01;
+    
+    if(DeviceStatus.workState < 9) data |= led[DeviceStatus.workState-1];
   
     command(0xC2);
     send_8bit(data);
@@ -202,9 +209,11 @@ void showPreheat(uint8_t sw)
     
     if(DeviceStatus.light == ON) data |= 0x08;
     
+    if(DeviceStatus.workState < 9) data |= led[DeviceStatus.workState-1];
+    
     command(0xC2);
     if(sw == ON) send_8bit(data);
-    else send_8bit(data & 0x08);
+    else send_8bit(data & 0xFE);
     
     STB_H;
 }
@@ -373,118 +382,25 @@ void key_process(void)
     {
         if(KEY[0] & 0x08) // 设置上下管温度
         {
-            if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)
-            {
-                if(14 != DeviceStatus.workState)
-                {
-                    if(HOT_UP == DeviceStatus.hotUpDown)
-                    {
-                        DeviceStatus.hotUpDown = HOT_DOWN;
-                        showTemp(DeviceStatus.down_Temperature, ON);
-                        showSymbol(SYMBOL_DOWN);
-                    }
-                    else if(HOT_DOWN == DeviceStatus.hotUpDown)
-                    {
-                        DeviceStatus.hotUpDown = HOT_UP;
-                        showTemp(DeviceStatus.up_Temperature, ON);
-                        showSymbol(SYMBOL_UP);
-                    }
-                }
-                KeyBeep();
-            }
-            else if((DeviceStatus.enterMode == ENTER_SET_TIME) || 
-                     (DeviceStatus.enterMode == ENTER_START_WORK))
-            {
-                if(14 != DeviceStatus.workState)
-                {
-                    if(HOT_UP == DeviceStatus.hotUpDown)
-                    {
-                        showTemp(DeviceStatus.up_Temperature, ON);
-                        showSymbol(SYMBOL_UP);
-                    }
-                    else if(HOT_DOWN == DeviceStatus.hotUpDown) 
-                    {
-                        showTemp(DeviceStatus.down_Temperature, ON);
-                        showSymbol(SYMBOL_DOWN);
-                    }
-                }
-                else 
-                {
-                    showTemp(DeviceStatus.down_Temperature, ON);
-                    showSymbol(SYMBOL_DOWN);
-                }
-                DeviceStatus.flashLight = 0;
-                KeyBeep();
-                DeviceStatus.enterMode = ENTER_SET_UP_DOWN_TEMP;
-            }
-            DeviceStatus.flashLight = 0;
+            SetHotUpOrDown();
         }
         if(KEY[0] & 0x01) // 炉灯开关
         {
-            
-            if(DeviceStatus.light == 0)
-            {
-                RELAY_1_H;
-                DeviceStatus.light = 1;
-            }
-            else
-            {
-                RELAY_1_L;
-                DeviceStatus.light = 0;
-            }
-            showLight();
-            KeyBeep();
+            LightSwitch();
         }
         key1 = KEY[0];
-        
     }
     if(key2 != KEY[1])
     {
         if(KEY[1] & 0x08) // 取消键
         {
-            DeviceStatus.enterMode = ENTER_DEFINE;
-            DeviceStatus.preheat = 0;
-            DeviceStatus.startWork = 0;
-            DeviceStatus.workState = 16;
-            DeviceStatus.workTime = 0;
-            DeviceStatus.hotUpDown = HOT_UP;
-            DeviceStatus.up_Temperature = 0;
-            DeviceStatus.down_Temperature = 0;
-            showFunction(DeviceStatus.workState, ON);
-            showTemp(Temperature[DeviceStatus.workState], ON);
-            showSymbol(SYMBOL_DEFAULT);
-            KeyBeep();
+            CancelKey();
         }
         if(KEY[1] & 0x01) // 设置时间
         {
-            if(DeviceStatus.enterMode != ENTER_DEFINE)
-            {
-                
-                if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)
-                {
-                    if(DeviceStatus.startWork == OFF)   // 是否处于工作状态
-                    {
-                        if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];
-                        showTime(DeviceStatus.workTime, ON, ON);
-                        DeviceStatus.enterMode = ENTER_SET_TIME;
-                    }
-                    else
-                    {
-                        showTime(DeviceStatus.workTime, ON, ON);
-                        DeviceStatus.enterMode = ENTER_START_WORK;
-                    }
-                }
-                else if(DeviceStatus.enterMode == ENTER_START_WORK)
-                {
-                    if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];
-                    showTime(DeviceStatus.workTime, ON, ON);
-                }
-                KeyBeep();
-                DeviceStatus.flashLight = 0;
-            }
+            SetTimeKey();
         }
         key2 = KEY[1];
-        
     }
 }
 
@@ -519,7 +435,7 @@ void CodingSwitchPolling(void)
 // direction: 方向，1与-1
 void CodeProcess(int8_t direction)
 {
-    if(DeviceStatus.enterMode == ENTER_DEFINE)                      // Code按键默认状态
+    if(DeviceStatus.setMode == SET_FUNCTION)                      // Code按键默认状态, 选择功能
     {
         KeyBeep();
         if(1 == direction)
@@ -530,13 +446,13 @@ void CodeProcess(int8_t direction)
         {
             if(--DeviceStatus.workState <= 2) DeviceStatus.workState = 16;
         }
-        showFunction(DeviceStatus.workState, 1);
+        showFunction(DeviceStatus.workState, ON);
         showTemp(Temperature[DeviceStatus.workState], ON);
         DeviceStatus.flashLight = 0;
     }
-    else if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)       // Code按键设置上下管温度状态
+    else if(DeviceStatus.setMode == SET_TEMP)
     {
-        if(DeviceStatus.startWork == OFF)
+        if(DeviceStatus.knob != KNOB_DISABLE)
         {
             KeyBeep();
             if(DeviceStatus.hotUpDown == HOT_UP) //上管
@@ -584,9 +500,9 @@ void CodeProcess(int8_t direction)
             DeviceStatus.flashLight = 0;
         }
     }
-    else if(DeviceStatus.enterMode == ENTER_SET_TIME)               // Code按键设置工作时间状态
+    else if(DeviceStatus.setMode == SET_TIME)
     {
-        if(DeviceStatus.startWork == OFF)
+        if(DeviceStatus.knob != KNOB_DISABLE)
         {
             KeyBeep();
             if(-1 == direction)
@@ -612,8 +528,300 @@ void CodeProcess(int8_t direction)
             DeviceStatus.flashLight = 0;
         }
     }
-    else if(DeviceStatus.enterMode == ENTER_START_WORK)             // Code按键开始工作状态
+}
+
+void DeviceRemind(void) // 设备指示灯提示
+{
+    if(DeviceStatus.enterMode == ENTER_CHOICE_FUNCTION)
     {
-        // 未使用。
+        if(DeviceStatus.flashLight == 1) showFunction(DeviceStatus.workState, ON);
+        else if(DeviceStatus.flashLight >= 2) 
+        {
+            showFunction(DeviceStatus.workState, OFF);
+            DeviceStatus.flashLight = 0;
+        }
     }
+    else if(DeviceStatus.enterMode == ENTER_SELECTED_FUNCTION)
+    {
+        if(DeviceStatus.flashLight == 1)
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
+                else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, ON);
+                showSymbol(DeviceStatus.hotUpDown);
+            }
+            else if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, ON, ON);
+            }
+            if(DeviceStatus.preheat == ON) showPreheat(ON);
+        }
+        else if(DeviceStatus.flashLight >= 2) 
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, OFF);
+                else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, OFF);
+                DeviceStatus.flashLight = 0;
+            }
+            else if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, OFF, ON);
+                DeviceStatus.flashLight = 0;
+            }
+            if(DeviceStatus.preheat == ON) showPreheat(OFF);
+        }
+    }
+    else if(DeviceStatus.enterMode == ENTER_PREHEAT)
+    {
+        if(DeviceStatus.flashLight >= 10)       // 5秒后自动返回到显示时间状态
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                showTime(DeviceStatus.workTime, ON, ON);
+                DeviceStatus.setMode = SET_TIME;
+            }
+            DeviceStatus.flashLight = 0;
+        }
+    }
+    else if(DeviceStatus.enterMode == ENTER_START_WORK)
+    {
+        if(DeviceStatus.flashLight == 1)
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
+                else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, ON);
+                showSymbol(DeviceStatus.hotUpDown);
+            }
+            else if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, ON, ON);
+            }
+        }
+        else if(DeviceStatus.flashLight == 2) 
+        {
+            if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, ON, OFF);
+                DeviceStatus.flashLight = 0;
+            }
+        }
+        else if(DeviceStatus.flashLight >= 10)
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                showTime(DeviceStatus.workTime, ON, ON);
+                DeviceStatus.setMode = SET_TIME;
+            }
+            DeviceStatus.flashLight = 0;
+        }
+    }
+    else if(DeviceStatus.enterMode == ENTER_PAUSE_WORK)
+    {
+        if(DeviceStatus.flashLight == 1)
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
+                else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, ON);
+                showSymbol(DeviceStatus.hotUpDown);
+            }
+            else if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, ON, ON);
+            }
+        }
+        else if(DeviceStatus.flashLight >= 2) 
+        {
+            if(DeviceStatus.setMode == SET_TEMP)
+            {
+                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, OFF);
+                else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, OFF);
+                DeviceStatus.flashLight = 0;
+            }
+            else if(DeviceStatus.setMode == SET_TIME)
+            {
+                showTime(DeviceStatus.workTime, OFF, ON);
+                DeviceStatus.flashLight = 0;
+            }
+        }
+    }
+}
+
+void SetFunction(uint8_t function)
+{
+    DeviceStatus.workState = function;
+    DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
+    DeviceStatus.setMode = SET_FUNCTION;
+    showFunction(DeviceStatus.workState, ON);
+    showTemp(Temperature[DeviceStatus.workState], ON);
+    showSymbol(SYMBOL_DEFAULT);
+    KeyBeep();
+}
+
+void LightSwitch(void)
+{
+    if(DeviceStatus.light == 0)
+    {
+        RELAY_1_H;
+        DeviceStatus.light = 1;
+    }
+    else
+    {
+        RELAY_1_L;
+        DeviceStatus.light = 0;
+    }
+    showLight();
+    KeyBeep();
+}
+
+void CancelKey(void)
+{
+    DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
+    DeviceStatus.preheat = OFF;
+    DeviceStatus.startWork = OFF;
+    DeviceStatus.workState = 16;
+    DeviceStatus.workTime = 0;
+    DeviceStatus.hotUpDown = HOT_UP;
+    DeviceStatus.up_Temperature = 0;
+    DeviceStatus.down_Temperature = 0;
+    DeviceStatus.setMode = SET_FUNCTION;
+    showFunction(DeviceStatus.workState, ON);
+    showTemp(Temperature[DeviceStatus.workState], ON);
+    showSymbol(SYMBOL_DEFAULT);
+    KeyBeep();
+}
+
+void SetHotUpOrDown(void)
+{
+    if(DeviceStatus.enterMode != ENTER_CHOICE_FUNCTION)
+    {
+        if(DeviceStatus.setMode == SET_TEMP)    // 只有在设置温度模式下才能切换上/下管
+        {
+            if(HOT_DOWN == DeviceStatus.hotUpDown)
+            {
+                DeviceStatus.hotUpDown = HOT_UP;
+            }
+            else if(HOT_UP == DeviceStatus.hotUpDown) 
+            {
+                DeviceStatus.hotUpDown = HOT_DOWN;
+            }
+        }
+        
+        if(14 != DeviceStatus.workState)        // 14号功能只有下管
+        {
+            if(HOT_UP == DeviceStatus.hotUpDown)
+            {
+                showTemp(DeviceStatus.up_Temperature, ON);
+                showSymbol(SYMBOL_UP);
+            }
+            else if(HOT_DOWN == DeviceStatus.hotUpDown) 
+            {
+                showTemp(DeviceStatus.down_Temperature, ON);
+                showSymbol(SYMBOL_DOWN);
+            }
+        }
+        else 
+        {
+            showTemp(DeviceStatus.down_Temperature, ON);
+            showSymbol(SYMBOL_DOWN);
+        }
+        KeyBeep();
+        DeviceStatus.setMode = SET_TEMP;
+    }
+    DeviceStatus.flashLight = 0;
+}
+
+void SetTimeKey(void)
+{
+    if(DeviceStatus.enterMode != ENTER_CHOICE_FUNCTION)
+    {
+        showTime(DeviceStatus.workTime, ON, ON);
+        KeyBeep();
+        DeviceStatus.flashLight = 0;
+        DeviceStatus.setMode = SET_TIME;
+    }
+}
+
+
+/*
+名称: uint16_t MathData(uint8_t *Data)
+功能: 求平均值
+形参: *Data 数据缓冲区地址
+返回值：数据的平均值。
+*/ 
+uint16_t MathData(uint16_t *Data)
+{
+    uint8_t i, j;
+    uint16_t temp;
+    uint32_t value;
+
+    for(i = 0; i < 50; i++)
+    {
+        for(j = i; j < 50; j++)
+        {
+              if(Data[i] < Data[j])
+              {
+                    temp = Data[i];
+                    Data[i] = Data[j];
+                    Data[j] = temp;
+              }
+        }
+    }
+
+    value = 0;
+    for(i = 10; i < 40; i++)
+        value += Data[i];
+
+    temp = value / 30;
+
+    return temp;
+}
+
+uint16_t Get_UP_NTC_Value(void)
+{
+    uint16_t i, j, temp, buf[50];
+
+    GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
+
+    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL0, DISABLE);
+    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_0, ADC2_ALIGN_RIGHT);
+
+    ADC2_StartConversion();
+
+    for (i = 0; i < 50; i++)
+    {
+        ADC2_StartConversion();
+        buf[i] = ADC2_GetConversionValue();
+        for (j = 0; j < 0xFF; j++);
+    }
+
+    temp = MathData(buf);
+
+    return temp;
+}
+
+uint16_t Get_DOWN_NTC_Value(void)
+{
+    uint16_t i, j, temp, buf[50];
+
+    GPIO_Init(GPIOB, GPIO_PIN_1, GPIO_MODE_IN_FL_NO_IT);
+
+    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL1, DISABLE);
+    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_1, ADC2_ALIGN_RIGHT);
+
+    ADC2_StartConversion();
+
+    for (i = 0; i < 50; i++)
+    {
+        ADC2_StartConversion();
+        buf[i] = ADC2_GetConversionValue();
+        for (j = 0; j < 0xFF; j++);
+    }
+
+    temp = MathData(buf);
+
+    return temp;
 }

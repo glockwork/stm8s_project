@@ -50,4 +50,12 @@ void showLight(void);
 void showPreheat(uint8_t sw);
 void showUpDownTemp(void);
 void showTime(uint16_t time, uint8_t sw, uint8_t dp);
+void DeviceRemind(void);
+void SetFunction(uint8_t function);
+void LightSwitch(void);
+void CancelKey(void);
+void SetHotUpOrDown(void);
+void SetTimeKey(void);
+uint16_t Get_UP_NTC_Value(void);
+uint16_t Get_DOWN_NTC_Value(void);
 #endif

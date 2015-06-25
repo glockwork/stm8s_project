@@ -36,9 +36,9 @@
   */
 
 
-//extern uint8_t RxRecvBuffer[BUFFERSIZE];
+extern uint8_t RxRecvBuffer[BUFFERSIZE];
 extern uint16_t DataSize;
-//extern NET_RECV    NetRecv;
+extern NET_RECV    NetRecv;
 extern DEVICE_STATUS    DeviceStatus;
 
 #ifdef _COSMIC_
@@ -280,63 +280,32 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
      it is recommended to set a breakpoint on the following instruction.
      500ms
   */
-    static uint8_t TimeCount = 0;
+    static uint8_t TimeCount = 0, PreheatTimeOut = 0;
+    static uint16_t PreheatTimeCount = 0;
     
     DeviceStatus.flashLight++;
 
-    if(DeviceStatus.flashLight == 1)
+    DeviceRemind();
+    
+    if(DeviceStatus.enterMode == ENTER_PREHEAT)
     {
-        if(DeviceStatus.enterMode == ENTER_DEFINE) 
+        if(DeviceStatus.preheat == ON)
         {
-            showFunction(DeviceStatus.workState, ON);
-            
-        }
-        else if(DeviceStatus.enterMode == ENTER_SET_TIME) showTime(DeviceStatus.workTime, ON, ON);
-        else if(DeviceStatus.enterMode == ENTER_START_WORK) 
-        {
-            showTime(DeviceStatus.workTime, ON, ON);
-        }
-        else if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)
-        {
-            if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
-            else if(DeviceStatus.hotUpDown == HOT_DOWN) showTemp(DeviceStatus.down_Temperature, ON);
-            showPreheat(ON);
-            showSymbol(DeviceStatus.hotUpDown);
-        }
-    }
-    else if(DeviceStatus.flashLight >= 2)
-    {
-        if(DeviceStatus.enterMode == ENTER_DEFINE) 
-        {
-            showFunction(DeviceStatus.workState, OFF);
-            
-        }
-        else if(DeviceStatus.enterMode == ENTER_SET_TIME)
-        {
-            showTime(DeviceStatus.workTime, OFF, ON);
-        }
-        else if(DeviceStatus.enterMode == ENTER_START_WORK) 
-        {
-            showTime(DeviceStatus.workTime, ON, OFF);
-            DeviceStatus.flashLight = 0;
-        }
-        else if(DeviceStatus.enterMode == ENTER_SET_UP_DOWN_TEMP)
-        {
-            if(DeviceStatus.startWork == ON)
+            if(DeviceStatus.temperatureOK == OK)
             {
-                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, ON);
-                else showTemp(DeviceStatus.down_Temperature, ON);
-                if(DeviceStatus.flashLight >= 7) DeviceStatus.enterMode = ENTER_START_WORK;
-            }
-            else
-            {
-                if(DeviceStatus.hotUpDown == HOT_UP) showTemp(DeviceStatus.up_Temperature, OFF);
-                else showTemp(DeviceStatus.down_Temperature, OFF);
-                showPreheat(OFF);
+                if(++PreheatTimeCount >= 600)   // 每5分钟提醒一次
+                {
+                    // 10声蜂鸣声提醒
+                    if(++PreheatTimeOut >= 6)
+                    {
+                        // 退出预热模式，进入功能选择模式
+                        PreheatTimeCount = 0;
+                        PreheatTimeOut = 0;
+                        DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
+                    }
+                }
             }
         }
-        
-        if(DeviceStatus.startWork == OFF) DeviceStatus.flashLight = 0;
     }
     
     if(DeviceStatus.startWork == ON)
@@ -346,9 +315,9 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
             DeviceStatus.workTime--;
             if(DeviceStatus.workTime == 0) // 定时工作时间到
             {
+                CancelKey();
                 DeviceStatus.timeOut = 1;
                 DeviceStatus.startWork = OFF;
-                DeviceStatus.enterMode = ENTER_DEFINE;
             }
             TimeCount = 0;
         }
@@ -472,16 +441,16 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     /* In order to detect unexpected events during development,
        it is recommended to set a breakpoint on the following instruction.
     */
-//    uint8_t Recv;
-//
-//    if(UART1_GetITStatus(UART1_IT_RXNE ) != RESET)  // 接收数据
-//    {
-//        Recv = UART1_ReceiveData8();
-////        RxRecvBuffer[DataSize++] = Recv;
-////        if(DataSize > BUFFERSIZE-1) DataSize = 0;
-//        //    UART1_SendByte(Recv);
-//        //    UART3_SendByte(Recv);
-//    } 
+    uint8_t Recv;
+
+    if(UART1_GetITStatus(UART1_IT_RXNE ) != RESET)  // 接收数据
+    {
+        Recv = UART1_ReceiveData8();
+        RxRecvBuffer[DataSize++] = Recv;
+        if(DataSize > BUFFERSIZE-1) DataSize = 0;
+//        UART1_SendByte(Recv);
+//        UART3_SendByte(Recv);
+    } 
  }
 #endif /* (STM8S208) || (STM8S207) || (STM8S103) || (STM8S903) || (STM8AF62Ax) || (STM8AF52Ax) */
 

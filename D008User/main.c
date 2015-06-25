@@ -2,8 +2,8 @@
 #include "stm8s.h"
 #include "main.h"
 
-//extern NET_RECV        NetMode;
-//extern uint8_t RxRecvBuffer[BUFFERSIZE];
+extern NET_RECV        NetMode;
+extern uint8_t RxRecvBuffer[BUFFERSIZE];
 extern uint16_t DataSize;
 DEVICE_STATUS           DeviceStatus = {0};
 
@@ -21,6 +21,7 @@ void main(void)
     TIM3_Config();
     TIM4_Config();
     UART1_Config();
+    UART3_Config();
     
     enableInterrupts();
     DeviceStatus.workState = 16;
@@ -32,12 +33,19 @@ void main(void)
     
     showTemp(Temperature[DeviceStatus.workState], ON);
     showSymbol(SYMBOL_DEFAULT);
-
+    UART3_SendString("Hello", 5);
     while (1)
     {
         if(DeviceStatus.Time_100ms == 1)
         {
-            UART1_SendString("Hello, ABCEDEFGHIJKL", 20);
+            if(UART1_GetFlagStatus(UART1_FLAG_IDLE) == SET)
+            {
+                if(DataSize != 0)
+                {
+                    DataResolve(RxRecvBuffer, DataSize); 
+                    DataSize = 0;
+                }
+            }
             DeviceStatus.Time_100ms = 0;
         }
     }

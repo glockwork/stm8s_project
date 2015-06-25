@@ -4,7 +4,7 @@
 NET_RECV    NetMode = {0};
 uint8_t RxRecvBuffer[BUFFERSIZE] = {0};
 uint16_t DataSize = 0;
-enum {ModeReady, TestMode, SetMode, ConnectAP, ConnectServer, ServerJoin, ServerOK} NetStatus;
+extern DEVICE_STATUS    DeviceStatus;
 
 /*
   函数功能：获取Next数组
@@ -57,358 +57,191 @@ uint16_t Index_KMP(String S, String T, uint16_t pos)
     else return 0;
 }
 
-/*
-名称: void TestNetMode(void)
-功能: 发送测试命令
-形参: 无
-返回值：无
-*/ 
-void TestNetMode(void)
+uint8_t stringCMP(uint8_t *str1, uint8_t *str2, uint8_t len)
 {
-    SEND("AT\r\n", sizeof("AT\r\n")-1);
-}
-
-/*
-名称: void SetNetMode(uint8_t Mode)
-功能: 发送设置模式命令
-形参: Mode 模式
-返回值：无
-*/ 
-void SetNetMode(uint8_t Mode)
-{
-    switch(Mode)
+    uint8_t i;
+    for(i = 0; i < len; i++)
     {
-    case 1:
-        SEND("AT+CWMODE=1\r\n", sizeof("AT+CWMODE=1\r\n")-1);
-        break;
-    case 2:
-        SEND("AT+CWMODE=2\r\n", sizeof("AT+CWMODE=2\r\n")-1);
-        break;
-    case 3:
-        SEND("AT+CWMODE=3\r\n", sizeof("AT+CWMODE=3\r\n")-1);
-        break;
-    default:
-        SEND("AT+CWMODE?\r\n", sizeof("AT+CWMODE?\r\n")-1);
-        break;
+        if(str1[i] != str2[i]) return 1;
     }
+    return 0;
 }
 
-/*
-名称: void ResetNetMode(void)
-功能: 发送复位命令
-形参: 无
-返回值：无
-*/ 
-void ResetNetMode(void)
+void ResolveMessage(uint8_t *Message)
 {
-    SEND("AT+RST\r\n", sizeof("AT+RST\r\n")-1);
-}
-
-/*
-名称: void ClosedConnectet(void)
-功能: 发送关闭连接命令
-形参: 无
-返回值：无
-*/ 
-void ClosedConnectet(void)
-{
-    SEND("AT+CIPCLOSE\r\n", sizeof("AT+CIPCLOSE\r\n")-1);
-}
-
-/*
-名称: void ClosedAP(void)
-功能: 发送关闭连接命令
-形参: 无
-返回值：无
-*/ 
-void ClosedAP(void)
-{
-    SEND("AT+CWQAP\r\n", sizeof("AT+CWQAP\r\n")-1);
-}
-
-/*
-名称: void NetModeConnectAP(void)
-功能: 发送连接AP命令
-形参: 无
-返回值：无
-*/ 
-void NetModeConnectAP(void)
-{
-    SEND(AP_Message, sizeof(AP_Message)-1);
-}
-
-/*
-名称: void NetModeConnectServer(void)
-功能: 发送连接服务器命令
-形参: 无
-返回值：无
-*/ 
-void NetModeConnectServer(void)
-{
-    SEND(Server_Message, sizeof(Server_Message)-1);
-}
-
-
-/*
-名称: void NetSendDataLength(void)
-功能: 发送数据长度
-形参: 无
-返回值：无
-*/ 
-void NetSendDataLength(void)
-{
-    SEND("AT+CIPSEND=10\r\n", sizeof("AT+CIPSEND=10\r\n")-1);
-}
-
-/*
-名称: void NetSendData(uint8_t *Data, uint16_t Length)
-功能: 发送数据
-形参: 无
-返回值：无
-*/ 
-void NetSendData(String Data, uint16_t Length)
-{
-    SEND(Data, Length);
-}
-
-/*
-名称: void isRecvOK(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否只含有"OK"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvOK(String RxRecvData)
-{
-    uint8_t OK[] = " OK";
-    uint8_t SEND_OK[] = " SEND OK";
-    SEND_OK[0] = 7;
-    OK[0] = 2;
-    uint16_t index1, index2;
-
-    index1 = Index_KMP(RxRecvData, SEND_OK, 1);
-    index2 = Index_KMP(RxRecvData, OK, 1);
-
-    if(index1 == 0 && index2 > 0) NetMode.Status |= NET_OK;
-        //SEND("OK\n");
-}
-
-
-/*
-名称: void isRecvReady(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"ready"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvReady(String RxRecvData)
-{
-    uint8_t READY[] = " ready";
-    READY[0] = 5;
-
-    if(Index_KMP(RxRecvData, READY, 1)) NetMode.Status |= NET_READY;
-    //SEND("ready\n");
-}
-
-/*
-名称: void isRecvError(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"ERROR"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvError(String RxRecvData)
-{
-    uint8_t ERROR[] = " ERROR";
-    ERROR[0] = 5;
-    if(Index_KMP(RxRecvData, ERROR, 1)) 
+    switch(Message[0])
     {
-        NetMode.Status |= NET_ERROR;
-        NetMode.Status &= ~NET_CONNECT;
-    }
-    //SEND("ERROR\n");
-}
-
-/*
-名称: void isRecvData(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"+IPD"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvData(String RxRecvData)
-{
-    uint8_t Index = 0, i;
-    uint8_t IPD[] = " +IPD";
-    IPD[0] = 4;
-    Index = Index_KMP(RxRecvData, IPD, 1);
-    if(Index != 0)
-    {
-        NetMode.RecvDataSize = RxRecvData[Index+5]-0x30;
-        for(i = 0; i < NetMode.RecvDataSize; i++)
+    case 0x40:
+        PingResponse(&Message[2]);
+        break;
+        
+    case 0x41:
+        if(0x02 == Message[1])
         {
-            NetMode.RecvData[i] = RxRecvData[Index+7+i];
+            GetMessageFunction(Message);
+            FunctionResponse(&Message[2], Message[4]);
         }
-        UART3_SendString((uint8_t *)NetMode.RecvData, NetMode.RecvDataSize);
-        NetMode.Status |= NET_RECV_DATA;
+        break;
     }
 }
 
-/*
-名称: void isRecvSendOK(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"SEND OK"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvSendOK(String RxRecvData)
+void GetMessageFunction(uint8_t* Message)
 {
-    uint8_t SEND_OK[] = " SEND OK";
-    SEND_OK[0] = 7;
-
-    if(Index_KMP(RxRecvData, SEND_OK, 1)) NetMode.Status |= NET_SEND_OK;
-    //SEND("SEND OK\n");
-}
-
-/*
-名称: void isRecvSendFAIL(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"SEND FAIL"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvSendFAIL(String RxRecvData)
-{
-    uint8_t SEND_FAIL[] = " SEND FAIL";
-    SEND_FAIL[0] = 9;
-
-    if(Index_KMP(RxRecvData, SEND_FAIL, 1)) NetMode.Status |= NET_SEND_FAIL;
-    //SEND("SEND OK\n");
-}
-
-/*
-名称: void isRecvClosed(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"CLOSED"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvClosed(String RxRecvData)
-{
-    uint8_t CLOSED[] = " CLOSED";
-    CLOSED[0] = 6;
-
-    if(Index_KMP(RxRecvData, CLOSED, 1))
+    if('f' == Message[6])
     {
-        NetMode.Status &= ~NET_CONNECT;
-        NetMode.Status |= NET_CLOSED;
+        if(0x03 == Message[7])
+        {
+            if(0 == stringCMP(&Message[8], "AAA", 3))
+            {
+                // 计时加热
+                if('0' == Message[12])
+                {
+                    DeviceStatus.startWork = OFF;                               // 清除工作指示标志
+        //            showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
+                    DeviceStatus.knob = OFF;                                    // 启用旋钮              
+                    DeviceStatus.setMode = SET_TIME;                            // 标志位设置时间
+                    DeviceStatus.enterMode = ENTER_PAUSE_WORK;
+                }
+                else if('1' == Message[12])
+                {
+                    if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];      // 获取默认工作时间
+                    showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
+                    showPreheat(ON);                                            // 让预热指示灯显示， 如果带预热则亮，否则不会亮
+                    DeviceStatus.startWorkBeep = ON;                            // 工作提示音
+                    
+                    DeviceStatus.knob = KNOB_DISABLE;                           // 禁用旋钮
+                    DeviceStatus.setMode = SET_TIME;                            // 设置时间
+                    
+                    if(DeviceStatus.preheat == ON)
+                    {
+                        DeviceStatus.startWork = OFF;                           // 清除工作指示标志
+                        DeviceStatus.enterMode = ENTER_PREHEAT;                 // 预热工作状态
+                    }
+                    else
+                    {
+                        DeviceStatus.startWork = ON;                            // 设置工作指示标志
+                        DeviceStatus.enterMode = ENTER_START_WORK;              // 倒计时加热
+                    }
+                }
+                KeyBeep();
+            }
+            else if(0 == stringCMP(&Message[8], "AAB", 3))
+            {
+                SetFunction(16);
+            }
+            else if(0 == stringCMP(&Message[8], "AAC", 3))
+            {
+                SetFunction(15);
+            }
+            else if(0 == stringCMP(&Message[8], "AAD", 3))
+            {
+                SetFunction(14);
+            }
+            else if(0 == stringCMP(&Message[8], "AAE", 3))
+            {
+                SetFunction(13);
+            }
+            else if(0 == stringCMP(&Message[8], "AAF", 3))
+            {
+                SetFunction(12);
+            }
+            else if(0 == stringCMP(&Message[8], "AAG", 3))
+            {
+                SetFunction(11);
+            }
+            else if(0 == stringCMP(&Message[8], "AAH", 3))
+            {
+                SetFunction(10);
+            }
+            else if(0 == stringCMP(&Message[8], "AAI", 3))
+            {
+                SetFunction(9);
+            }
+            else if(0 == stringCMP(&Message[8], "AAJ", 3))
+            {
+                SetFunction(8);
+            }
+            else if(0 == stringCMP(&Message[8], "AAK", 3))
+            {
+                SetFunction(7);
+            }
+            else if(0 == stringCMP(&Message[8], "AAL", 3))
+            {
+                SetFunction(6);
+            }
+            else if(0 == stringCMP(&Message[8], "AAM", 3))
+            {
+                SetFunction(5);
+            }
+            else if(0 == stringCMP(&Message[8], "AAN", 3))
+            {
+                SetFunction(4);
+            }
+            else if(0 == stringCMP(&Message[8], "AAO", 3))
+            {
+                SetFunction(3);
+            }
+            else if(0 == stringCMP(&Message[8], "AAP", 3))
+            {
+//                DeviceStatus.workState = 2;
+//                DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
+                showPreheat(ON);
+                KeyBeep();
+            }
+            else if(0 == stringCMP(&Message[8], "AAQ", 3))
+            {
+                //DeviceStatus.workState = 1;
+                //DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
+                RELAY_1_H;
+                DeviceStatus.light = 1;
+                showLight();
+                KeyBeep();
+            }
+            else if(0 == stringCMP(&Message[8], "AAR", 3))
+            {
+                // DIY
+              KeyBeep();
+            }
+        }
     }
-    //SEND("CLOSED\n");
 }
 
-/*
-名称: void isRecvBusy(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"busy"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvBusy(String RxRecvData)
+void PingResponse(uint8_t* MessageID)
 {
-    uint8_t BUSY[] = " busy";
-    BUSY[0] = 4;
-
-    if(Index_KMP(RxRecvData, BUSY, 1)) NetMode.Status |= NET_BUSY;
-    //SEND("Busy\n");
+  uint8_t response[6] = {0};
+  
+  response[0] = 0;
+  response[1] = 4;
+  
+  response[2] = 0x60;
+  response[3] = 0x00;
+  response[4] = MessageID[0];
+  response[5] = MessageID[1];
+  
+  SEND(response, 6);
 }
 
-/*
-名称: void isRecvAL_Connected(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"ALREADY CONNECTED"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvAL_Connected(String RxRecvData)
+void FunctionResponse(uint8_t *MessageID, uint8_t Token)
 {
-    uint8_t AL_CONNECT[] = " ALREADY CONNECTED";
-    AL_CONNECT[0] = 17;
-
-    if(Index_KMP(RxRecvData, AL_CONNECT, 1)) NetMode.Status |= NET_ALREADY_CONNECTED;
+  uint8_t response[12] = {0};
+  
+  response[0] = 0;
+  response[1] = 10;     // response Lenght
+  
+  response[2] = 0x51;   // 
+  response[3] = 0x44;
+  response[4] = MessageID[0];
+  response[5] = MessageID[1];
+  response[6] = Token;
+  response[7] = 0xFF;
+  response[8] = 0x00;
+  response[9] = 0x00;
+  response[10] = 0x00;
+  response[11] = 0x01;
+  
+  SEND(response, 12);   // 
 }
 
-/*
-名称: void isRecvFail(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"FAIL"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvFail(String RxRecvData)
-{
-    uint8_t FAIL[] = " FAIL";
-    uint8_t SEND_FAIL[] = " SEND FAIL";
-    SEND_FAIL[0] = 9;
-    FAIL[0] = 4;
-    uint16_t index1, index2;
-    
-    index1 = Index_KMP(RxRecvData, SEND_FAIL, 1);
-    index2 = Index_KMP(RxRecvData, FAIL, 1);
-
-    if(index2 > 0 && index1 == 0) NetMode.Status |= NET_FAIL;
-}
-
-/*
-名称: void isRecvConnect(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"CONNECT"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isRecvConnect(String RxRecvData)
-{
-    uint8_t CONNECT[] = " CONNECT";
-    uint8_t AL_CONNECT[] = " ALREADY CONNECTED";
-    uint8_t CONNECT_FAILED[] = " CONNECT Failed";
-    uint16_t index1, index2, index3;
-    AL_CONNECT[0] = 17;
-    CONNECT[0] = 7;
-    CONNECT_FAILED[0] = 14;
-
-    index2 = Index_KMP(RxRecvData, AL_CONNECT, 1);
-    index3 = Index_KMP(RxRecvData, CONNECT_FAILED, 1);
-    index1 = Index_KMP(RxRecvData, CONNECT, 1);
-
-    if(index1 > 0 && index2 == 0 && index3 == 0) NetMode.Status |= NET_CONNECT;
-}
-
-/*
-名称: void isConnectFailed(uint8_t *RxRecvData)
-功能: 判断是否接收的数据中是否含有"CONNECT Failed"
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void isConnectFailed(String RxRecvData)
-{
-    uint8_t CONNECT_FAILED[] = " CONNECT Failed";
-    CONNECT_FAILED[0] = 14;
-
-    if(Index_KMP(RxRecvData, CONNECT_FAILED, 1)) 
-    {
-        NetMode.Status &= ~NET_CONNECT;
-        NetMode.Status |= NET_CONNECT_FAILED;
-    }
-}
-
-/*
-名称: void GetNetFlags(uint8_t *RxRecvData)
-功能: 判断接收的数据
-形参: *RxRecvData 数据指针
-返回值：无
-*/ 
-void GetNetFlags(String RxRecvData)
-{
-    isRecvReady(RxRecvData);
-    isRecvBusy(RxRecvData);
-    isRecvClosed(RxRecvData);
-    isRecvSendOK(RxRecvData);
-    isRecvOK(RxRecvData);
-    isRecvConnect(RxRecvData);
-    isRecvAL_Connected(RxRecvData);
-    isRecvError(RxRecvData);
-    isRecvFail(RxRecvData);
-    isRecvData(RxRecvData);
-    isConnectFailed(RxRecvData);
-}
 
 /*
 名称: void DataResolve(uint8_t *Data, uint16_t Length)
@@ -432,7 +265,7 @@ void DataResolve(String Data, uint16_t Length)
         {
             if(Recv == '\n')
             {
-                RxDataBuffer[Index][0] = RxLength[Index]-1;
+//                RxDataBuffer[Index][0] = RxLength[Index]-1;
                 Index++;
             }
             End = 0;
@@ -440,10 +273,9 @@ void DataResolve(String Data, uint16_t Length)
         else
         {
             if(Recv == '\r') End = 1;
-            else if(Recv == '>') NetMode.Status |= NET_ACTION_SEND;
             else
             {   
-                if(RxLength[Index] == 0) RxLength[Index]++;
+//                if(RxLength[Index] == 0) RxLength[Index]++;
                 RxDataBuffer[Index][RxLength[Index]++] = Recv;
                 if(RxLength[Index] > BUFFERSIZE-1) RxLength[Index] = 0;
             }
@@ -452,217 +284,14 @@ void DataResolve(String Data, uint16_t Length)
 
     for(i = 0; i < Index; i++)
     {
-        GetNetFlags(RxDataBuffer[i]);
-//        UART3_SendString(RxDataBuffer[i], 10);
+        ResolveMessage(RxDataBuffer[i]);
+        UART3_SendString(RxDataBuffer[i], RxLength[i]);
     }
 
     Length = 0;
     Index = 0;
 }
 
-#define MAX_FIX         10              // 最大尝试次数
-#define MAX_TIME        5*60            // 重复尝试间隔时间
-void NetModeErrorFix(void)
-{
-    static uint16_t TimeCount = 0;      // 计时
-    static uint16_t FixCount = 0;       // 修复计数
-    static uint8_t ModeBreakDown = 0;   // 模块损坏计数
-    static uint8_t ErrorCode = 0;
-    
-    if(ErrorCode != NetMode.ErrorCode)  // 如果错误代码发生变化，计数变量清零。
-    {
-        TimeCount = 0;
-        FixCount = 0;
-        ErrorCode = NetMode.ErrorCode;
-    }
-    
-    switch(NetMode.ErrorCode)
-    {
-    case 1:
-        FixCount++;
-        ResetNetMode();
-        break;
-    case 2:
-        FixCount++;
-        TestNetMode();
-        break;
-    case 3:
-        FixCount++;
-        SetNetMode(3); 
-        break;
-    case 4:
-        FixCount++;
-        NetModeConnectAP();
-        break;
-    case 5:
-        if((NetMode.Status & NET_ERROR) && (NetMode.Status & NET_CLOSED)) NetModeConnectServer();
-        
-//        else if(NetMode.Status & NET_FAIL) NetMode.ErrorCode = 8;
-        
-        else if(NetMode.Status & NET_CONNECT_FAILED) 
-        {
-            NetStatus = ConnectServer;
-            NetModeConnectAP();
-        }
-        FixCount++;
-        break;
-
-    case 80:            // 重复尝试
-        TimeCount++;
-        break;
-    case 81:
-        // 添加模块损坏提示代码
-        break;
-    default:
-        break;
-    }
-    
-    if(FixCount == MAX_FIX) 
-    {
-        NetMode.ErrorCode = 80;
-        ModeBreakDown++;
-    }
-    
-    if(TimeCount == MAX_TIME) 
-    {
-        NetStatus = ModeReady;
-        NetMode.ErrorCode = 0;
-        if(ModeBreakDown == MAX_FIX) NetMode.ErrorCode = 81;         // 标识模块损坏
-    }
-} 
-
-/*
-名称: void NetProcess(void)
-功能: 网络通信过程
-形参: 无
-返回值：无
-*/ 
-void NetProcess(void)
-{
-    static uint8_t ReConnectCount = 0;
-    switch(NetStatus)
-    {
-    case ModeReady:     // 上电发送模块复位命令后
-        if(NetMode.Status & NET_READY)  // 模块准备OK
-        {
-            TestNetMode();
-            NetStatus = TestMode;       // 进入测试模块
-            NetMode.ErrorCode = 0;
-            NetMode.Status &= ~NET_READY;
-        }
-        else if(NetMode.Status & NET_ERROR) 
-        {
-            NetMode.ErrorCode = 1;
-            NetMode.Status &= ~NET_ERROR;
-        }
-        break;
-    case TestMode:      // 测试模块
-        if(NetMode.Status & NET_OK)     // 测试模块OK
-        {
-            NetStatus = SetMode;        
-            SetNetMode(3);              // 配置模块
-            NetMode.ErrorCode = 0;
-        }
-        else if(NetMode.Status & NET_ERROR) 
-        {
-            NetMode.ErrorCode = 2;
-            NetMode.Status &= ~NET_ERROR;
-        }
-        break;
-    case SetMode:               // 配置模块
-        if(NetMode.Status & NET_OK)     // 配置OK
-        {
-            ResetNetMode();     
-            NetStatus = ConnectAP;      // 复位模块，是配置生效，进入连接AP
-            NetMode.ErrorCode = 0;
-        }
-        else if(NetMode.Status & NET_ERROR) 
-        {
-            NetMode.ErrorCode = 3;
-            NetMode.Status &= ~NET_ERROR;
-        }
-        break;
-    case ConnectAP:     // 连接AP
-        if(NetMode.Status & NET_READY)  // 复位后，模块准备OK
-        {
-            NetModeConnectAP();         // 发送连接模块命令
-            NetStatus = ConnectServer;  // 进入连接服务器
-            NetMode.ErrorCode = 0;
-            NetMode.Status &= ~NET_READY;
-        }
-        else if(NetMode.Status & NET_ERROR) 
-        {
-            NetMode.ErrorCode = 1;
-            NetMode.Status &= ~NET_ERROR;
-        }
-        break;
-    case ConnectServer:         // 连接服务器
-        if(NetMode.Status & NET_OK)     // 连接AP OK
-        {
-            NetModeConnectServer();     // 发送连接服务器命令
-            NetStatus = ServerJoin;     // 进入连接服务器
-            NetMode.ErrorCode = 0;
-            
-        }
-        else if(NetMode.Status & NET_ALREADY_CONNECTED) NetStatus = ServerOK;
-        else if(NetMode.Status & NET_FAIL) 
-        {
-            NetMode.ErrorCode = 4;
-            NetMode.Status &= ~NET_FAIL;
-        }
-        break;
-    case ServerJoin:
-        if(NetMode.Status & NET_CONNECT) 
-        {
-            NetStatus = ServerOK;
-            NetMode.ErrorCode = 0;
-            ReConnectCount = 0;
-        }
-        else if(NetMode.Status & NET_CLOSED) 
-        {
-            ReConnectCount++;
-            if(ReConnectCount >= 20)
-            {
-                NetMode.ErrorCode = 5;
-                NetStatus = ServerJoin;
-            }
-            else 
-            {
-                NetModeConnectServer();
-                NetMode.Status &= ~NET_CLOSED;
-            }
-        }
-        else NetMode.ErrorCode = 5;
-        break;
-    case ServerOK:
-        if(NetMode.Status & NET_ACTION_SEND)
-        {
-            NetSendData((uint8_t *)&NetMode.SendData, 10);
-            NetMode.Status &= ~NET_ACTION_SEND;
-        }
-        else if(NetMode.Status & NET_CLOSED) 
-        {
-            ReConnectCount++;
-            if(ReConnectCount >= 20)
-            {
-                NetMode.ErrorCode = 5;
-                NetStatus = ServerJoin;
-            }
-            else 
-            {
-                NetModeConnectServer();
-                NetMode.Status &= ~NET_CLOSED;
-            }
-        }
-        else if(NetMode.Status & (NET_CLOSED | NET_ERROR | NET_CONNECT_FAILED)) 
-        {
-            NetStatus = ServerJoin;
-            NetMode.ErrorCode = 5;
-        }
-        break;
-    }
-    NetMode.Status &= ~NET_OK;
-}
 
 /*
 名称: uint16_t strlen(String str)
