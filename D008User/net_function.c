@@ -242,6 +242,31 @@ void FunctionResponse(uint8_t *MessageID, uint8_t Token)
   SEND(response, 12);   // 
 }
 
+  
+
+void FunctionReport(uint8_t function)
+{
+    static uint16_t messageid = 0;
+    uint8_t report[13] = {0};
+    
+    if(++messageid >= 1024) messageid = 0;
+    
+    report[0] = 0;
+    report[1] = 13;
+    report[2] = 0x50;
+    report[3] = 0x02;
+    report[4] = messageid >> 8;
+    report[5] = messageid & 0x00FF;
+    report[6] = 0xB1;
+    report[7] = 'e';
+    report[8] = 0x02;
+    report[9] = 'A';
+    report[10] = 'A';
+    report[11] = 0xFF;
+    report[12] = ;
+    
+    SEND(report, 13);
+}
 
 /*
 Ãû³Æ: void DataResolve(uint8_t *Data, uint16_t Length)
