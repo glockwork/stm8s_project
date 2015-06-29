@@ -29,8 +29,11 @@ uint16_t strlen(String str);
 
 
 void GetMessageFunction(uint8_t* Message);
-void FunctionResponse(uint8_t *MessageID, uint8_t Token);
 void ResolveMessage(uint8_t *Message);
 uint8_t stringCMP(uint8_t *str1, uint8_t *str2, uint8_t len);
+
+void FunctionResponse(uint8_t *MessageID, uint8_t Token);
 void PingResponse(uint8_t* MessageID);
+void FunctionReport(uint8_t function);
+
 #endif

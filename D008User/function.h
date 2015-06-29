@@ -30,7 +30,6 @@
 
 void KeyBeep(void);
 void PowerOnBeep(void);
-void StartWorkBeep(void);
 #if 0
 void right_handwise(void);
 void left_handwise(void);

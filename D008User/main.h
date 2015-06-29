@@ -46,13 +46,13 @@
 
 static uint16_t Temperature[17] = {0, 0, 0, 195, 200, 210, 210, 210, 215, 160, 200, 155, 185, 150, 40, 170, 170};       // 默认温度值，摄氏度
 static uint16_t Timing[17] = {0, 0, 0, 28, 60, 20, 28, 18, 40, 18, 20, 27, 16, 12, 50, 30, 30};      // 默认工作时间，分钟
-static uint8_t FunctionName[16] = {'', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''};
 
 typedef struct
 {
     uint16_t    beep;                   // 蜂鸣器计数
     uint8_t     beepSW;                 // 蜂鸣器开关
     uint8_t     startWorkBeep;          // 开始工作提示音开关
+    uint8_t     powerOnBeep;            // 开机提示音
     uint8_t     hotUpDown;              // 上下管状态, 0上，1下
     uint8_t     up_Temperature;         // 上管温度值
     uint8_t     down_Temperature;       // 下管温度值

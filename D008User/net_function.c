@@ -96,18 +96,19 @@ void GetMessageFunction(uint8_t* Message)
                 // 计时加热
                 if('0' == Message[12])
                 {
-                    DeviceStatus.startWork = OFF;                               // 清除工作指示标志
-        //            showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
-                    DeviceStatus.knob = OFF;                                    // 启用旋钮              
-                    DeviceStatus.setMode = SET_TIME;                            // 标志位设置时间
-                    DeviceStatus.enterMode = ENTER_PAUSE_WORK;
+                    CancelKey();
+                    SetFunction(16);
                 }
                 else if('1' == Message[12])
                 {
                     if(0 == DeviceStatus.workTime) DeviceStatus.workTime = Timing[DeviceStatus.workState];      // 获取默认工作时间
+                    showFunction(DeviceStatus.workState, ON);                   // 让功能指示灯常亮
                     showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
                     showPreheat(ON);                                            // 让预热指示灯显示， 如果带预热则亮，否则不会亮
+                    
+                    DeviceStatus.beepSW = ON;
                     DeviceStatus.startWorkBeep = ON;                            // 工作提示音
+                    DeviceStatus.beep = 0;
                     
                     DeviceStatus.knob = KNOB_DISABLE;                           // 禁用旋钮
                     DeviceStatus.setMode = SET_TIME;                            // 设置时间
@@ -123,7 +124,6 @@ void GetMessageFunction(uint8_t* Message)
                         DeviceStatus.enterMode = ENTER_START_WORK;              // 倒计时加热
                     }
                 }
-                KeyBeep();
             }
             else if(0 == stringCMP(&Message[8], "AAB", 3))
             {
@@ -200,72 +200,49 @@ void GetMessageFunction(uint8_t* Message)
             else if(0 == stringCMP(&Message[8], "AAR", 3))
             {
                 // DIY
-              KeyBeep();
+                KeyBeep();
             }
         }
     }
 }
 
+static uint8_t PINGR_ESPONSE[6] = {0, 4, 0x40, 0, 0, 0};
+
 void PingResponse(uint8_t* MessageID)
 {
-  uint8_t response[6] = {0};
-  
-  response[0] = 0;
-  response[1] = 4;
-  
-  response[2] = 0x60;
-  response[3] = 0x00;
-  response[4] = MessageID[0];
-  response[5] = MessageID[1];
-  
-  SEND(response, 6);
+
+  PINGR_ESPONSE[4] = MessageID[0];
+  PINGR_ESPONSE[5] = MessageID[1];
+  SEND(PINGR_ESPONSE, 6);
 }
+
+static uint8_t FUNCTION_RESPONSE[12] = {0, 10, 0x51, 0x44, 0, 0, 0, 0xFF, 0, 0, 0, 1};
 
 void FunctionResponse(uint8_t *MessageID, uint8_t Token)
 {
-  uint8_t response[12] = {0};
+  FUNCTION_RESPONSE[4] = MessageID[0];
+  FUNCTION_RESPONSE[5] = MessageID[1];
+  FUNCTION_RESPONSE[6] = Token;
   
-  response[0] = 0;
-  response[1] = 10;     // response Lenght
-  
-  response[2] = 0x51;   // 
-  response[3] = 0x44;
-  response[4] = MessageID[0];
-  response[5] = MessageID[1];
-  response[6] = Token;
-  response[7] = 0xFF;
-  response[8] = 0x00;
-  response[9] = 0x00;
-  response[10] = 0x00;
-  response[11] = 0x01;
-  
-  SEND(response, 12);   // 
+  SEND(FUNCTION_RESPONSE, 12);   // 
 }
 
-  
+static uint8_t FUNCTION_REPORT[13] = {0, 11, 0x50, 0x02, 0, 0, 0xB1, 'e', 0x01, 'A', 0xFF, 'A', 0};
+static uint8_t FUNCTION_NAME[17] = {0, 0, 0, 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B'};
 
 void FunctionReport(uint8_t function)
 {
     static uint16_t messageid = 0;
-    uint8_t report[13] = {0};
+    
+    if(function < 3) return;
     
     if(++messageid >= 1024) messageid = 0;
+
+    FUNCTION_REPORT[4] = messageid >> 8;
+    FUNCTION_REPORT[5] = messageid & 0x00FF;
+    FUNCTION_REPORT[12] = FUNCTION_NAME[function];
     
-    report[0] = 0;
-    report[1] = 13;
-    report[2] = 0x50;
-    report[3] = 0x02;
-    report[4] = messageid >> 8;
-    report[5] = messageid & 0x00FF;
-    report[6] = 0xB1;
-    report[7] = 'e';
-    report[8] = 0x02;
-    report[9] = 'A';
-    report[10] = 'A';
-    report[11] = 0xFF;
-    report[12] = ;
-    
-    SEND(report, 13);
+    SEND(FUNCTION_REPORT, 13);
 }
 
 /*

@@ -16,7 +16,8 @@ void KeyBeep(void)
 {
     BEEP_H;
     DeviceStatus.beep = 0;
-    DeviceStatus.beepSW = 1;
+    DeviceStatus.startWorkBeep = OFF;
+    DeviceStatus.beepSW = ON;
 }
 
 void PowerOnBeep(void)
@@ -25,19 +26,6 @@ void PowerOnBeep(void)
     Delay(200);
     BEEP_L;
     Delay(200);
-    BEEP_H;
-    Delay(200);
-    BEEP_L;
-    Delay(200);
-    BEEP_H;
-    Delay(200);
-    BEEP_L;
-    Delay(600);
-    BEEP_Cmd(DISABLE);
-}
-
-void StartWorkBeep(void)
-{
     BEEP_H;
     Delay(200);
     BEEP_L;
@@ -448,6 +436,7 @@ void CodeProcess(int8_t direction)
         }
         showFunction(DeviceStatus.workState, ON);
         showTemp(Temperature[DeviceStatus.workState], ON);
+        FunctionReport(DeviceStatus.workState);
         DeviceStatus.flashLight = 0;
     }
     else if(DeviceStatus.setMode == SET_TEMP)

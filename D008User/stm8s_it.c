@@ -383,7 +383,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
             else if(DeviceStatus.beep == 200) BEEP_L;
             else if(DeviceStatus.beep == 800) BEEP_H;
             else if(DeviceStatus.beep == 1000) BEEP_L;
-            else if(DeviceStatus.beep >=  2400)
+            else if(DeviceStatus.beep >= 2400)
             {
                 BEEP_Cmd(DISABLE);
                 DeviceStatus.beep = 0;

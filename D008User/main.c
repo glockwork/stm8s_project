@@ -33,7 +33,7 @@ void main(void)
     
     showTemp(Temperature[DeviceStatus.workState], ON);
     showSymbol(SYMBOL_DEFAULT);
-    UART3_SendString("Hello", 5);
+    FunctionReport(DeviceStatus.workState);
     while (1)
     {
         if(DeviceStatus.Time_100ms == 1)
