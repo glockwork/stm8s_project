@@ -91,6 +91,10 @@ void GetMessageFunction(uint8_t* Message)
     {
         if(0x03 == Message[7])
         {
+//            if(0 == stringCMP(&Message[8], "AA", 2))
+//            {
+//                
+//            }
             if(0 == stringCMP(&Message[8], "AAA", 3))
             {
                 // 计时加热

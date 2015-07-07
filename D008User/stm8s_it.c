@@ -311,21 +311,30 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
                     showPreheat(OFF);
                     PreheatFlash = 0;
                 }
-                if(++PreheatTimeCount >= 600)   // 每5分钟提醒一次
+                if(PreheatTimeCount == 0)       // 预热温度OK时提醒
                 {
                     // 10声蜂鸣声提醒
+                    KeyBeep();
+                    DeviceStatus.startWorkBeep = PREHEAT_RING;
+                }
+                if(++PreheatTimeCount >= 600)   // 每5分钟提醒一次
+                {
                     if(++PreheatTimeOut >= 6)   // 30分钟后自动退出到待机模式
                     {
                         // 退出预热模式，进入功能选择模式
+                        CancelKey();
                         Relay_Off_All();
-                        PreheatTimeCount = 0;
                         PreheatTimeOut = 0;
-                        DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
                     }
                     PreheatTimeCount = 0;
                 }
             }
         }
+    }
+    else        // 退出预热模式 计数变量清零，否则第二次预热模式工作时预热温度OK后无提醒。
+    {
+        PreheatTimeCount = 0;
+        PreheatTimeOut = 0;
     }
     
     if(DeviceStatus.startWork == ON)
@@ -340,10 +349,11 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
             DeviceStatus.workTime--;
             if(DeviceStatus.workTime == 0) // 定时工作时间到
             {
-                CancelKey();
                 Relay_Off_All();
-                DeviceStatus.timeOut = 1;
+                CancelKey();
+                DeviceStatus.startWorkBeep = END;
                 DeviceStatus.startWork = OFF;
+                DeviceStatus.timeOut = 1;
             }
             TimeCount = 0;
         }
@@ -392,7 +402,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     {
         DeviceStatus.beep++;
 
-        if(DeviceStatus.startWorkBeep == OFF)
+        if(DeviceStatus.startWorkBeep == OFF)   // 单声按键音
         {
             if(DeviceStatus.beep == 1)
             {
@@ -407,7 +417,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
                 DeviceStatus.beepSW = OFF;
             }
         }
-        else
+        else if(DeviceStatus.startWorkBeep == ON) // 双声工作开始提示音
         {
             if(DeviceStatus.beep == 1)
             {
@@ -425,6 +435,60 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
                 DeviceStatus.startWorkBeep = OFF;
             }
         }
+        else if(DeviceStatus.startWorkBeep == END) // 三声工作结束提示音
+        {
+            if(DeviceStatus.beep == 1)
+            {
+                BEEP_Cmd(ENABLE);
+                BEEP_H;
+            }
+            else if(DeviceStatus.beep == 200) BEEP_L;
+            else if(DeviceStatus.beep == 800) BEEP_H;
+            else if(DeviceStatus.beep == 1000) BEEP_L;
+            else if(DeviceStatus.beep == 1600) BEEP_H;
+            else if(DeviceStatus.beep == 1800) BEEP_L;
+            else if(DeviceStatus.beep >= 3200)
+            {
+                BEEP_Cmd(DISABLE);
+                DeviceStatus.beep = 0;
+                DeviceStatus.beepSW = OFF;
+                DeviceStatus.startWorkBeep = OFF;
+            }
+        }
+        else if(DeviceStatus.startWorkBeep == PREHEAT_RING)  // 十声预热完成提示音
+        {
+            if(DeviceStatus.beep == 1)
+            {
+                BEEP_Cmd(ENABLE);
+                BEEP_H;
+            }
+            else if(DeviceStatus.beep == 200) BEEP_L;
+            else if(DeviceStatus.beep == 1200) BEEP_H;
+            else if(DeviceStatus.beep == 1400) BEEP_L;
+            else if(DeviceStatus.beep == 2600) BEEP_H;
+            else if(DeviceStatus.beep == 2800) BEEP_L;
+            else if(DeviceStatus.beep == 4000) BEEP_H;
+            else if(DeviceStatus.beep == 4200) BEEP_L;
+            else if(DeviceStatus.beep == 5400) BEEP_H;
+            else if(DeviceStatus.beep == 5600) BEEP_L;
+            else if(DeviceStatus.beep == 6800) BEEP_H;
+            else if(DeviceStatus.beep == 7000) BEEP_L;
+            else if(DeviceStatus.beep == 8200) BEEP_H;
+            else if(DeviceStatus.beep == 8400) BEEP_L;
+            else if(DeviceStatus.beep == 9600) BEEP_H;
+            else if(DeviceStatus.beep == 9800) BEEP_L;
+            else if(DeviceStatus.beep == 11000) BEEP_H;
+            else if(DeviceStatus.beep == 11200) BEEP_L;
+            else if(DeviceStatus.beep == 12400) BEEP_H;
+            else if(DeviceStatus.beep == 12600) BEEP_L;
+            else if(DeviceStatus.beep >= 14000)
+            {
+                BEEP_Cmd(DISABLE);
+                DeviceStatus.beep = 0;
+                DeviceStatus.beepSW = OFF;
+                DeviceStatus.startWorkBeep = OFF;
+            }
+        }
     }
     CodingSwitchPolling();
     count++;
@@ -433,7 +497,6 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
         DeviceStatus.Time_30ms = 1;     
         count = 0;
     }
-    
 
     TIM3_ClearITPendingBit(TIM3_IT_UPDATE);
  }

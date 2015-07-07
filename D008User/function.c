@@ -678,6 +678,7 @@ void CancelKey(void)
     DeviceStatus.hotUpDown = HOT_UP;
     DeviceStatus.up_Temperature = 0;
     DeviceStatus.down_Temperature = 0;
+    DeviceStatus.temperatureOK = NO;
     DeviceStatus.setMode = SET_FUNCTION;
     showFunction(DeviceStatus.workState, ON);
     showTemp(Temperature[DeviceStatus.workState], ON);
@@ -688,26 +689,33 @@ void CancelKey(void)
 void SetHotUpOrDown(void)
 {
     if(DeviceStatus.enterMode != ENTER_CHOICE_FUNCTION)
-    {      
-        if(14 != DeviceStatus.workState)        
+    {
+        if(14 != DeviceStatus.workState)        // 14号功能只有下管
         {
             if(DeviceStatus.setMode == SET_TEMP)    // 只有在设置温度模式下才能切换上/下管
             {
-                if(HOT_UP == DeviceStatus.hotUpDown)
-                {
-                    DeviceStatus.hotUpDown = HOT_DOWN;
-                    showTemp(DeviceStatus.down_Temperature, ON);
-                    showSymbol(SYMBOL_DOWN);
-                }
-                else if(HOT_DOWN == DeviceStatus.hotUpDown) 
+                if(HOT_DOWN == DeviceStatus.hotUpDown)
                 {
                     DeviceStatus.hotUpDown = HOT_UP;
-                    showTemp(DeviceStatus.up_Temperature, ON);
-                    showSymbol(SYMBOL_UP);
+                }
+                else if(HOT_UP == DeviceStatus.hotUpDown) 
+                {
+                    DeviceStatus.hotUpDown = HOT_DOWN;
                 }
             }
+          
+            if(HOT_UP == DeviceStatus.hotUpDown)
+            {
+                showTemp(DeviceStatus.up_Temperature, ON);
+                showSymbol(SYMBOL_UP);
+            }
+            else if(HOT_DOWN == DeviceStatus.hotUpDown) 
+            {
+                showTemp(DeviceStatus.down_Temperature, ON);
+                showSymbol(SYMBOL_DOWN);
+            }
         }
-        else // 14号功能只有下管
+        else 
         {
             showTemp(DeviceStatus.down_Temperature, ON);
             showSymbol(SYMBOL_DOWN);
@@ -812,13 +820,12 @@ uint16_t Get_DOWN_NTC_Value(void)
 
 #define B25     3435
 #define R_ST    100000
-
+// 温度越低电压越高、温度越高电压越低。
 void AutoControl(uint8_t up_temp, uint8_t down_temp)
 {
     static uint8_t up_temp_old = 0, down_temp_old = 0;
     static float Up_TempMax = 0, Up_TempMin = 0; 
     static float Down_TempMax = 0, Down_TempMin = 0; 
-    static uint8_t up_status = 0, down_status = 0;
     float Vup = 0, Vdown = 0;
     uint16_t Rt;
     
@@ -838,21 +845,13 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
                 up_temp_old = up_temp;
             }
             
-            if(Vup <= Up_TempMin)
+            if(Vup <= Up_TempMax)
             {
-                if(up_status != 0)
-                {
-                    RELAY_5_L;
-                    up_status = 0;
-                }
+                RELAY_5_L;
             }
-            else if(Vup >= Up_TempMax)
+            else if(Vup >= Up_TempMin)
             {
-                if(up_status != 1)
-                {
-                    RELAY_5_H;
-                    up_status = 1;
-                }
+                RELAY_5_H;
             }
         }
         
@@ -884,40 +883,32 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
         else return;
     }
     
-    if(Vdown <= Down_TempMin)
+    if(Vdown <= Down_TempMax)
     {
-        if(down_status != 0)
+        if(DeviceStatus.workState == 14)
         {
-            if(DeviceStatus.workState == 14)
-            {
-                RELAY_2_L;
-            }
-            else
-            {
-                RELAY_4_L;
-            }
-            down_status = 0;
+            RELAY_2_L;
+        }
+        else
+        {
+            RELAY_4_L;
         }
     }
-    else if(Vdown >= Down_TempMax)
+    else if(Vdown >= Down_TempMin)
     {
-        if(down_status != 1)
+        if(DeviceStatus.workState == 14)
         {
-            if(DeviceStatus.workState == 14)
-            {
-                RELAY_2_H;
-            }
-            else
-            {
-                RELAY_4_H;
-            }
-            down_status = 1;
+            RELAY_2_H;
+        }
+        else
+        {
+            RELAY_4_H;
         }
     }
     
     if(DeviceStatus.preheat == ON)
     {
-        if((Vdown > Down_TempMin) && (Vup > Up_TempMin))
+        if((Vdown < Down_TempMin) && (Vup < Up_TempMin))
         {
             DeviceStatus.temperatureOK = OK;
         }

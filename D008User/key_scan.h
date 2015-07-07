@@ -24,9 +24,10 @@
 #define ENTER_PAUSE_WORK                3       // Code按键 暂停工作状态
 #define ENTER_PREHEAT                   4       // Code按键 预热工作状态
 
-#define ON	        1               //开
-#define	OFF	        0               //关
-
+#define ON	        1               // 开
+#define	OFF	        0               // 关
+#define END             2               // 结束标志
+#define PREHEAT_RING    3               // 预热完成提示音
 unsigned char code_key_driver(void); 
 void code_key_read(void);
 void SelectedFunction(void);

@@ -71,6 +71,7 @@ void code_key_read(void)	//每10ms执行一次
 
     if(key_temp == S_key)
     {
+        KeyBeep();
         if(DeviceStatus.enterMode == ENTER_CHOICE_FUNCTION)             // Code按键 默认状态
         {
             SelectedFunction();
@@ -132,7 +133,7 @@ void code_key_read(void)	//每10ms执行一次
             DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;             // 标志为选择功能模式
         }
         DeviceStatus.flashLight = 0;
-        KeyBeep();
+        
     }
 }
 
