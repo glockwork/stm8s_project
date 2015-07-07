@@ -24,3 +24,27 @@ void UART3_SendString(uint8_t* Data, uint32_t len)
   for (; i<len; i++)
     UART3_SendByte(Data[i]);
 }
+
+void Send_BAT_Voltage(uint16_t AD_Value)
+{
+#if 1
+      uint8_t str[4], i= 0;
+      float val;
+      val = 500.0/1024 * AD_Value ;
+      
+      str[0] = (int)val /100 + 0x30;
+      str[1] = '.';
+      str[2] = (int)val % 100 / 10 + 0x30;
+      str[3] = (int)val % 10 + 0x30;
+      
+      for (; i < 4; i++)
+        UART3_SendByte(str[i]);
+      UART3_SendByte('V');
+#else
+      UART3_SendByte(AD_Value/1000+0x30);
+      UART3_SendByte(AD_Value%1000/100+0x30);
+      UART3_SendByte(AD_Value%1000%100/10+0x30);
+      UART3_SendByte(AD_Value%1000%100%10+0x30);
+      UART3_SendByte(' ');
+#endif
+}

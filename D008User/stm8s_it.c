@@ -282,6 +282,9 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
   */
     static uint8_t TimeCount = 0, PreheatTimeOut = 0;
     static uint16_t PreheatTimeCount = 0;
+    static uint8_t BatCount = 0;
+    static uint8_t CheckCount = 0;
+    static uint8_t PreheatFlash = 0;
     
     DeviceStatus.flashLight++;
 
@@ -291,18 +294,35 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     {
         if(DeviceStatus.preheat == ON)
         {
+            if(++CheckCount >= 6)
+            {
+                AutoControl(DeviceStatus.up_Temperature, DeviceStatus.down_Temperature);
+                CheckCount = 0;
+            }
             if(DeviceStatus.temperatureOK == OK)
             {
+                PreheatFlash++;
+                if(PreheatFlash == 1)
+                {
+                    showPreheat(ON);
+                }
+                else if(PreheatFlash >= 2)
+                {
+                    showPreheat(OFF);
+                    PreheatFlash = 0;
+                }
                 if(++PreheatTimeCount >= 600)   // 每5分钟提醒一次
                 {
                     // 10声蜂鸣声提醒
-                    if(++PreheatTimeOut >= 6)
+                    if(++PreheatTimeOut >= 6)   // 30分钟后自动退出到待机模式
                     {
                         // 退出预热模式，进入功能选择模式
+                        Relay_Off_All();
                         PreheatTimeCount = 0;
                         PreheatTimeOut = 0;
                         DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
                     }
+                    PreheatTimeCount = 0;
                 }
             }
         }
@@ -310,17 +330,31 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     
     if(DeviceStatus.startWork == ON)
     {
+        if(++CheckCount >= 6)
+        {
+            AutoControl(DeviceStatus.up_Temperature, DeviceStatus.down_Temperature);
+            CheckCount = 0;
+        }
         if(++TimeCount >= 120)  // 1分钟时间到
         {
             DeviceStatus.workTime--;
             if(DeviceStatus.workTime == 0) // 定时工作时间到
             {
                 CancelKey();
+                Relay_Off_All();
                 DeviceStatus.timeOut = 1;
                 DeviceStatus.startWork = OFF;
             }
             TimeCount = 0;
         }
+    }
+    
+    if(++BatCount >= 2)
+    {
+      
+        Send_BAT_Voltage(Get_UP_NTC_Value());
+        Send_BAT_Voltage(Get_DOWN_NTC_Value());
+        BatCount = 0;
     }
 
     TIM2_ClearITPendingBit(TIM2_IT_UPDATE);

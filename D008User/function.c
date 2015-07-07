@@ -1,4 +1,5 @@
 #include "function.h"
+#include <math.h>
 
 extern DEVICE_STATUS    DeviceStatus;
 
@@ -382,6 +383,7 @@ void key_process(void)
     {
         if(KEY[1] & 0x08) // 取消键
         {
+            Relay_Off_All();
             CancelKey();
         }
         if(KEY[1] & 0x01) // 设置时间
@@ -686,33 +688,26 @@ void CancelKey(void)
 void SetHotUpOrDown(void)
 {
     if(DeviceStatus.enterMode != ENTER_CHOICE_FUNCTION)
-    {
-        if(DeviceStatus.setMode == SET_TEMP)    // 只有在设置温度模式下才能切换上/下管
+    {      
+        if(14 != DeviceStatus.workState)        
         {
-            if(HOT_DOWN == DeviceStatus.hotUpDown)
+            if(DeviceStatus.setMode == SET_TEMP)    // 只有在设置温度模式下才能切换上/下管
             {
-                DeviceStatus.hotUpDown = HOT_UP;
-            }
-            else if(HOT_UP == DeviceStatus.hotUpDown) 
-            {
-                DeviceStatus.hotUpDown = HOT_DOWN;
+                if(HOT_UP == DeviceStatus.hotUpDown)
+                {
+                    DeviceStatus.hotUpDown = HOT_DOWN;
+                    showTemp(DeviceStatus.down_Temperature, ON);
+                    showSymbol(SYMBOL_DOWN);
+                }
+                else if(HOT_DOWN == DeviceStatus.hotUpDown) 
+                {
+                    DeviceStatus.hotUpDown = HOT_UP;
+                    showTemp(DeviceStatus.up_Temperature, ON);
+                    showSymbol(SYMBOL_UP);
+                }
             }
         }
-        
-        if(14 != DeviceStatus.workState)        // 14号功能只有下管
-        {
-            if(HOT_UP == DeviceStatus.hotUpDown)
-            {
-                showTemp(DeviceStatus.up_Temperature, ON);
-                showSymbol(SYMBOL_UP);
-            }
-            else if(HOT_DOWN == DeviceStatus.hotUpDown) 
-            {
-                showTemp(DeviceStatus.down_Temperature, ON);
-                showSymbol(SYMBOL_DOWN);
-            }
-        }
-        else 
+        else // 14号功能只有下管
         {
             showTemp(DeviceStatus.down_Temperature, ON);
             showSymbol(SYMBOL_DOWN);
@@ -773,10 +768,10 @@ uint16_t Get_UP_NTC_Value(void)
 {
     uint16_t i, j, temp, buf[50];
 
-    GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
-
-    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL0, DISABLE);
-    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_0, ADC2_ALIGN_RIGHT);
+    GPIO_Init(GPIOE, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
+  
+    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL9, DISABLE);
+    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_9, ADC2_ALIGN_RIGHT);
 
     ADC2_StartConversion();
 
@@ -796,10 +791,10 @@ uint16_t Get_DOWN_NTC_Value(void)
 {
     uint16_t i, j, temp, buf[50];
 
-    GPIO_Init(GPIOB, GPIO_PIN_1, GPIO_MODE_IN_FL_NO_IT);
-
-    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL1, DISABLE);
-    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_1, ADC2_ALIGN_RIGHT);
+    GPIO_Init(GPIOE, GPIO_PIN_7, GPIO_MODE_IN_FL_NO_IT);
+  
+    ADC2_SchmittTriggerConfig(ADC2_SCHMITTTRIG_CHANNEL8, DISABLE);
+    ADC2_ConversionConfig(ADC2_CONVERSIONMODE_SINGLE, ADC2_CHANNEL_8, ADC2_ALIGN_RIGHT);
 
     ADC2_StartConversion();
 
@@ -813,4 +808,126 @@ uint16_t Get_DOWN_NTC_Value(void)
     temp = MathData(buf);
 
     return temp;
+}
+
+#define B25     3435
+#define R_ST    100000
+
+void AutoControl(uint8_t up_temp, uint8_t down_temp)
+{
+    static uint8_t up_temp_old = 0, down_temp_old = 0;
+    static float Up_TempMax = 0, Up_TempMin = 0; 
+    static float Down_TempMax = 0, Down_TempMin = 0; 
+    static uint8_t up_status = 0, down_status = 0;
+    float Vup = 0, Vdown = 0;
+    uint16_t Rt;
+    
+    Vup = Get_UP_NTC_Value() * ( 5.0 / 1023);
+    Vdown = Get_DOWN_NTC_Value() * ( 5.0 / 1023);
+    
+    if(DeviceStatus.workState != 14)    // 不为发酵功能
+    {
+        if((231 != up_temp) && (39 != up_temp))    // 不为关闭
+        {
+            if(up_temp != up_temp_old)
+            {
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + up_temp+10) - 1 / (273.15 + 25))));
+                Up_TempMax = 5.0 / (4700 + Rt) * Rt;
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + up_temp-10) - 1 / (273.15 + 25))));
+                Up_TempMin = 5.0 / (4700 + Rt) * Rt;
+                up_temp_old = up_temp;
+            }
+            
+            if(Vup <= Up_TempMin)
+            {
+                if(up_status != 0)
+                {
+                    RELAY_5_L;
+                    up_status = 0;
+                }
+            }
+            else if(Vup >= Up_TempMax)
+            {
+                if(up_status != 1)
+                {
+                    RELAY_5_H;
+                    up_status = 1;
+                }
+            }
+        }
+        
+        if((231 != down_temp) && (39 != down_temp))
+        {
+            if(down_temp != down_temp_old)
+            {
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp+10) - 1 / (273.15 + 25))));
+                Down_TempMax = 5.0 / (4700 + Rt) * Rt;
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp-10) - 1 / (273.15 + 25))));
+                Down_TempMin = 5.0 / (4700 + Rt) * Rt;
+                down_temp_old = down_temp;
+            }
+        }
+    }
+    else
+    {
+        if((61 != down_temp) && (29 != down_temp))
+        {
+            if(down_temp != down_temp_old)
+            {
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp+2) - 1 / (273.15 + 25))));
+                Down_TempMax = 5.0 / (4700 + Rt) * Rt;
+                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp-2) - 1 / (273.15 + 25))));
+                Down_TempMin = 5.0 / (4700 + Rt) * Rt;
+                down_temp_old = down_temp;
+            }
+        }
+        else return;
+    }
+    
+    if(Vdown <= Down_TempMin)
+    {
+        if(down_status != 0)
+        {
+            if(DeviceStatus.workState == 14)
+            {
+                RELAY_2_L;
+            }
+            else
+            {
+                RELAY_4_L;
+            }
+            down_status = 0;
+        }
+    }
+    else if(Vdown >= Down_TempMax)
+    {
+        if(down_status != 1)
+        {
+            if(DeviceStatus.workState == 14)
+            {
+                RELAY_2_H;
+            }
+            else
+            {
+                RELAY_4_H;
+            }
+            down_status = 1;
+        }
+    }
+    
+    if(DeviceStatus.preheat == ON)
+    {
+        if((Vdown > Down_TempMin) && (Vup > Up_TempMin))
+        {
+            DeviceStatus.temperatureOK = OK;
+        }
+    }
+}
+
+void Relay_Off_All(void)
+{
+    RELAY_2_L;
+    RELAY_3_L;
+    RELAY_4_L;
+    RELAY_5_L;
 }

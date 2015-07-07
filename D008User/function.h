@@ -57,4 +57,6 @@ void SetHotUpOrDown(void);
 void SetTimeKey(void);
 uint16_t Get_UP_NTC_Value(void);
 uint16_t Get_DOWN_NTC_Value(void);
+void AutoControl(uint8_t up_temp, uint8_t down_temp);
+void Relay_Off_All(void);
 #endif

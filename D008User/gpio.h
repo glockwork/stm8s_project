@@ -4,20 +4,20 @@
 #include "stm8s.h"
 #include "main.h"
 
-#define RELAY_1_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_3)
+#define RELAY_1_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_3)       // 炉灯控制继电器
 #define RELAY_1_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_3)
 
-#define RELAY_2_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_4)
+#define RELAY_2_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_4)       // 发酵控制继电器（下管）
 #define RELAY_2_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_4)
 
-#define RELAY_3_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_5)
+#define RELAY_3_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_5)       // 转插控制继电器
 #define RELAY_3_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_5)
 
-#define RELAY_4_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_6)
-#define RELAY_4_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_6)
+#define RELAY_4_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_6)       // 下发热管控制继电器
+#define RELAY_4_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_6)        
 
-#define RELAY_5_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_7)
-#define RELAY_6_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_7)
+#define RELAY_5_H	                GPIO_WriteHigh(GPIOF, GPIO_PIN_7)       // 上发热管控制继电器
+#define RELAY_5_L	                GPIO_WriteLow(GPIOF, GPIO_PIN_7)
 
 /*
 名称: void GPIO_Init(void)
