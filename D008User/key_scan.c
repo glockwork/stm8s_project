@@ -101,7 +101,7 @@ void code_key_read(void)	//每10ms执行一次
         else if(DeviceStatus.enterMode == ENTER_PREHEAT)
         {
 //            showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
-            if(DeviceStatus.workState == 8) RELAY_3_H;              // 烤鸡功能 开转插
+            if(DeviceStatus.workState == 8) RELAY_3_H;                  // 烤鸡功能 开转插
             DeviceStatus.startWork = ON;                                // 设置工作指示标志
             DeviceStatus.preheat = OFF;                                 // 清预热指示灯标志
             showPreheat(OFF);                                           // 不显示预热指示灯

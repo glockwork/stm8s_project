@@ -101,7 +101,8 @@ void GetMessageFunction(uint8_t* Message)
                 if('0' == Message[12])
                 {
                     CancelKey();
-                    SetFunction(16);
+                    Relay_Off_All();
+                    FunctionReport(16);
                 }
                 else if('1' == Message[12])
                 {
@@ -127,6 +128,7 @@ void GetMessageFunction(uint8_t* Message)
                         DeviceStatus.startWork = ON;                            // 设置工作指示标志
                         DeviceStatus.enterMode = ENTER_START_WORK;              // 倒计时加热
                     }
+                    if(DeviceStatus.workState == 8) RELAY_3_H;                  // 烤鸡功能 开转插
                 }
             }
             else if(0 == stringCMP(&Message[8], "AAB", 3))
@@ -232,6 +234,7 @@ void FunctionResponse(uint8_t *MessageID, uint8_t Token)
 }
 
 static uint8_t FUNCTION_REPORT[13] = {0, 11, 0x50, 0x02, 0, 0, 0xB1, 'e', 0x01, 'A', 0xFF, 'A', 0};
+// 如果发送工作开关状态，只要在后面加参数‘1’和‘0’ 即可。如：00 0C 50 02 00 18 B1 65 01 41 FF 41 41 31
 static uint8_t FUNCTION_NAME[17] = {0, 0, 0, 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B'};
 
 void FunctionReport(uint8_t function)

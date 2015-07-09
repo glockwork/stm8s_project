@@ -385,6 +385,7 @@ void key_process(void)
         {
             Relay_Off_All();
             CancelKey();
+            FunctionReport(16);
         }
         if(KEY[1] & 0x01) // 设置时间
         {
@@ -670,20 +671,20 @@ void LightSwitch(void)
 
 void CancelKey(void)
 {
-    DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
-    DeviceStatus.preheat = OFF;
-    DeviceStatus.startWork = OFF;
-    DeviceStatus.workState = 16;
-    DeviceStatus.workTime = 0;
-    DeviceStatus.hotUpDown = HOT_UP;
-    DeviceStatus.up_Temperature = 0;
-    DeviceStatus.down_Temperature = 0;
-    DeviceStatus.temperatureOK = NO;
-    DeviceStatus.setMode = SET_FUNCTION;
-    showFunction(DeviceStatus.workState, ON);
-    showTemp(Temperature[DeviceStatus.workState], ON);
-    showSymbol(SYMBOL_DEFAULT);
-    KeyBeep();
+    DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;     // 选择模式
+    DeviceStatus.preheat = OFF;                         // 预热功能关闭
+    DeviceStatus.startWork = OFF;                       // 工作标志-关闭
+    DeviceStatus.workState = 16;                        // 工作选择-16号功能
+    DeviceStatus.workTime = 0;                          // 工作时间-清零
+    DeviceStatus.hotUpDown = HOT_UP;                    // 恢复默认为上管
+    DeviceStatus.up_Temperature = 0;                    // 上管温度默认值清零
+    DeviceStatus.down_Temperature = 0;                  // 下管温度默认值清零
+    DeviceStatus.temperatureOK = NO;                    // 预热温度标志-清零
+    DeviceStatus.setMode = SET_FUNCTION;                // 旋钮模式为选择功能
+    showFunction(DeviceStatus.workState, ON);           // 显示功能指示
+    showTemp(Temperature[DeviceStatus.workState], ON);  // 显示当前功能的默认温度
+    showSymbol(SYMBOL_DEFAULT);                         // 显示默认温度符号
+    KeyBeep();                                          // 提示音
 }
 
 void SetHotUpOrDown(void)
@@ -827,20 +828,22 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
     static float Up_TempMax = 0, Up_TempMin = 0; 
     static float Down_TempMax = 0, Down_TempMin = 0; 
     float Vup = 0, Vdown = 0;
-    uint16_t Rt;
+    float Rt;
     
-    Vup = Get_UP_NTC_Value() * ( 5.0 / 1023);
+    
     Vdown = Get_DOWN_NTC_Value() * ( 5.0 / 1023);
     
     if(DeviceStatus.workState != 14)    // 不为发酵功能
     {
+        Vup = Get_UP_NTC_Value() * ( 5.0 / 1023);
+      
         if((231 != up_temp) && (39 != up_temp))    // 不为关闭
         {
             if(up_temp != up_temp_old)
             {
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + up_temp+10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + up_temp+10) - 1 / (273.15 + 25))));
                 Up_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + up_temp-10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + up_temp-10) - 1 / (273.15 + 25))));
                 Up_TempMin = 5.0 / (4700 + Rt) * Rt;
                 up_temp_old = up_temp;
             }
@@ -859,9 +862,9 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
         {
             if(down_temp != down_temp_old)
             {
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp+10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + down_temp+10) - 1 / (273.15 + 25))));
                 Down_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp-10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + down_temp-10) - 1 / (273.15 + 25))));
                 Down_TempMin = 5.0 / (4700 + Rt) * Rt;
                 down_temp_old = down_temp;
             }
@@ -873,9 +876,9 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
         {
             if(down_temp != down_temp_old)
             {
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp+2) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + (down_temp+2)) - 1 / (273.15 + 25))));
                 Down_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (int)(R_ST * exp(B25 * (1 / (273.15 + down_temp-2) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25 * (1 / (273.15 + (down_temp-2)) - 1 / (273.15 + 25))));
                 Down_TempMin = 5.0 / (4700 + Rt) * Rt;
                 down_temp_old = down_temp;
             }
