@@ -308,18 +308,30 @@ void LCD_ShowTime_Hour(uint8_t hour)
   // S4  10  P3   11  12  am   pm 
   // 1   8   :    8   8  
   // 18  18  22  20   22  24  25
+  // 备注：用AM 和 PM表示时，手机的方式为：
+  // 12～11（AM） = 0～11（24小时制）, 
+  // 12～11(PM） = 12～23（24小时制）.
   
-  if(hour <= 12)
+  if(hour < 12) // 0～11
     LCD_ShowDigital(24, 0x30 | HT1261B_ReadData(24) & 0x0C);  //AM 
-  else
+  else  // 12～23
     LCD_ShowDigital(24, 0x21 | HT1261B_ReadData(24) & 0x0C);  //PM
   
   if(hour > 12) hour -= 12;
-  //Hour
-  if(hour > 9)
-    LCD_ShowDigital(18, number[hour%10] | 0x80);
-  else
-    LCD_ShowDigital(18, number[hour%10]);  
+  
+  if(hour != 0)
+  {
+    //Hour
+    if(hour > 9)
+      LCD_ShowDigital(18, number[hour%10] | 0x80);        // 显示 1X:XX
+    else  
+      LCD_ShowDigital(18, number[hour%10] & 0x7F);        // 显示  X:XX
+  }
+  else  // 0点显示为 AM 12点
+  {
+    hour = 12;
+    LCD_ShowDigital(18, number[hour%10] | 0x80);        // 显示 1X:XX
+  }
 }
 
 /*
