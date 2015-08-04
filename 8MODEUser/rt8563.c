@@ -44,10 +44,7 @@
 */  
 unsigned char BCD2Dec(unsigned char bcd)
 {
-  unsigned char dec = 0;
-  dec = (bcd>>4)*10 + (bcd&0x0F);
-
-  return dec;
+  return ((bcd / 16) * 10 + bcd % 16);
 }
 
 /*
@@ -58,10 +55,7 @@ unsigned char BCD2Dec(unsigned char bcd)
 */ 
 unsigned char Dec2BCD(unsigned char dec)
 {
-  unsigned char bcd = 0;
-  bcd = (dec/10)<<4 | (dec%10);
-
-  return bcd;
+  return (dec / 10 * 16 + dec % 10);
 }
   
 /*
@@ -126,7 +120,6 @@ void Get_RT8563(GPIO_TypeDef* IIC_PORT,
                 uint8_t index, 
                 uint8_t NumByteToRead) 
 {
-  uint8_t i;
   IIC_Start(IIC_PORT, SDA_PIN, SCL_PIN);
   IIC_Send_Byte(IIC_PORT, SDA_PIN, SCL_PIN, 0xA2);
   IIC_Respons(IIC_PORT, SDA_PIN, SCL_PIN);
@@ -136,10 +129,15 @@ void Get_RT8563(GPIO_TypeDef* IIC_PORT,
   IIC_Start(IIC_PORT, SDA_PIN, SCL_PIN);
   IIC_Send_Byte(IIC_PORT, SDA_PIN, SCL_PIN, 0xA3);
   IIC_Respons(IIC_PORT, SDA_PIN, SCL_PIN);
-
-  for(i = 0; i < NumByteToRead -1; i++)  
-    pData[i] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK));       
-  pData[i] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, NACK)); 
+  
+  pData[0] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x7F); // second, remove VL error bit
+  pData[1] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x7F); // minute, remove unwanted bits from MSB
+  pData[2] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x3F); // hour
+  pData[3] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x3F); // dayOfMonth
+  pData[4] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x07); // dayOfWeek
+  pData[5] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, ACK) & 0x1F); // month, remove century bit, 1999 is over
+  
+  pData[6] = BCD2Dec(IIC_Read_Byte(IIC_PORT, SDA_PIN, SCL_PIN, NACK)); 
 
   IIC_Stop(IIC_PORT, SDA_PIN, SCL_PIN);
 }	
