@@ -385,6 +385,8 @@ void key_process(void)
         {
             Relay_Off_All();
             CancelKey();
+            FunctionReportValue('P', '0');
+            FunctionReportValue('A', '0');
             FunctionReport(16);
         }
         if(KEY[1] & 0x01) // 设置时间
@@ -658,11 +660,13 @@ void LightSwitch(void)
     if(DeviceStatus.light == 0)
     {
         RELAY_1_H;
+        FunctionReportValue('Q', '1');
         DeviceStatus.light = 1;
     }
     else
     {
         RELAY_1_L;
+        FunctionReportValue('Q', '0');
         DeviceStatus.light = 0;
     }
     showLight();
@@ -819,14 +823,15 @@ uint16_t Get_DOWN_NTC_Value(void)
     return temp;
 }
 
-#define B25     3435
+#define B25_UP     3000
+#define B25_DOWN   2200
 #define R_ST    100000
 // 温度越低电压越高、温度越高电压越低。
 void AutoControl(uint8_t up_temp, uint8_t down_temp)
 {
-    static uint8_t up_temp_old = 0, down_temp_old = 0;
-    static float Up_TempMax = 0, Up_TempMin = 0; 
-    static float Down_TempMax = 0, Down_TempMin = 0; 
+    //static uint8_t up_temp_old = 0, down_temp_old = 0;
+    float Up_TempMax = 0, Up_TempMin = 0; 
+    float Down_TempMax = 0, Down_TempMin = 0; 
     float Vup = 0, Vdown = 0;
     float Rt;
     
@@ -839,14 +844,14 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
       
         if((231 != up_temp) && (39 != up_temp))    // 不为关闭
         {
-            if(up_temp != up_temp_old)
-            {
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + up_temp+10) - 1 / (273.15 + 25))));
+            //if(up_temp != up_temp_old)
+            //{
+                Rt = (R_ST * exp(B25_UP * (1 / (273.15 + up_temp+5) - 1 / (273.15 + 25))));
                 Up_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + up_temp-10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25_UP * (1 / (273.15 + up_temp-5) - 1 / (273.15 + 25))));
                 Up_TempMin = 5.0 / (4700 + Rt) * Rt;
-                up_temp_old = up_temp;
-            }
+               //up_temp_old = up_temp;
+            //}
             
             if(Vup <= Up_TempMax)
             {
@@ -860,28 +865,28 @@ void AutoControl(uint8_t up_temp, uint8_t down_temp)
         
         if((231 != down_temp) && (39 != down_temp))
         {
-            if(down_temp != down_temp_old)
-            {
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + down_temp+10) - 1 / (273.15 + 25))));
+            //if(down_temp != down_temp_old)
+            //{
+                Rt = (R_ST * exp(B25_DOWN * (1 / (273.15 + down_temp+5) - 1 / (273.15 + 25))));
                 Down_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + down_temp-10) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25_DOWN * (1 / (273.15 + down_temp-5) - 1 / (273.15 + 25))));
                 Down_TempMin = 5.0 / (4700 + Rt) * Rt;
-                down_temp_old = down_temp;
-            }
+                //down_temp_old = down_temp;
+            //}
         }
     }
     else
     {
         if((61 != down_temp) && (29 != down_temp))
         {
-            if(down_temp != down_temp_old)
-            {
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + (down_temp+2)) - 1 / (273.15 + 25))));
+            //if(down_temp != down_temp_old)
+            //{
+                Rt = (R_ST * exp(B25_DOWN * (1 / (273.15 + (down_temp+2)) - 1 / (273.15 + 25))));
                 Down_TempMax = 5.0 / (4700 + Rt) * Rt;
-                Rt = (R_ST * exp(B25 * (1 / (273.15 + (down_temp-2)) - 1 / (273.15 + 25))));
+                Rt = (R_ST * exp(B25_DOWN * (1 / (273.15 + (down_temp-2)) - 1 / (273.15 + 25))));
                 Down_TempMin = 5.0 / (4700 + Rt) * Rt;
-                down_temp_old = down_temp;
-            }
+                //down_temp_old = down_temp;
+            //}
         }
         else return;
     }

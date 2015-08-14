@@ -11,10 +11,6 @@ void main(void)
 {
     /* Clock configuration -----------------------------------------*/
     CLK_Config();  
-    //beep
-    Set_Beep_OptionByte();
-    Beep_Init(BEEP_FREQUENCY_4KHZ);
-    BEEP_LSICalibrationConfig(LSI_128kHz);
     /* GPIO configuration ------------------------------------------*/
     GPIO_Config_Init();
     
@@ -25,6 +21,11 @@ void main(void)
     
     enableInterrupts();
     DeviceStatus.workState = 16;
+    Delay(200);
+    //beep
+    Set_Beep_OptionByte();
+    Beep_Init(BEEP_FREQUENCY_4KHZ);
+    BEEP_LSICalibrationConfig(LSI_128kHz);
     
     showAll();
     PowerOnBeep();

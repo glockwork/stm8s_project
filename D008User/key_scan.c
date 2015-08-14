@@ -90,12 +90,14 @@ void code_key_read(void)	//每10ms执行一次
             {
                 DeviceStatus.startWork = OFF;                           // 清除工作指示标志
                 DeviceStatus.enterMode = ENTER_PREHEAT;                 // 预热工作状态
+                FunctionReportValue('P', '1');                          // 上报预热功能状态：开
             }
             else
             {   
                 if(DeviceStatus.workState == 8) RELAY_3_H;              // 烤鸡功能 开转插
                 DeviceStatus.startWork = ON;                            // 设置工作指示标志
                 DeviceStatus.enterMode = ENTER_START_WORK;              // 倒计时加热
+                FunctionReportValue('A', '1');                          // 上报计时工作状态：开
             }
         }
         else if(DeviceStatus.enterMode == ENTER_PREHEAT)
@@ -107,6 +109,8 @@ void code_key_read(void)	//每10ms执行一次
             showPreheat(OFF);                                           // 不显示预热指示灯
             DeviceStatus.startWorkBeep = ON;                            // 工作提示音
             DeviceStatus.enterMode = ENTER_START_WORK;                  // Code按键开始工作状态
+            FunctionReportValue('P', '0');                          // 上报预热功能状态：关
+            FunctionReportValue('A', '1');                          // 上报计时工作状态：开
             DeviceStatus.knob = KNOB_DISABLE;                           // 禁用旋钮
         }
         else if(DeviceStatus.enterMode == ENTER_START_WORK)           
@@ -114,9 +118,10 @@ void code_key_read(void)	//每10ms执行一次
             Relay_Off_All();
             DeviceStatus.startWork = OFF;                               // 清除工作指示标志
 //            showTime(DeviceStatus.workTime, ON, ON);                    // 显示工作时间
-            DeviceStatus.knob = OFF;                                    // 启用旋钮              
+            DeviceStatus.knob = OFF;                                    // 启用旋钮       
             DeviceStatus.setMode = SET_TIME;                            // 标志位设置时间
             DeviceStatus.enterMode = ENTER_PAUSE_WORK;
+            FunctionReportValue('A', '0');                          // 上报计时工作状态：关
         }
         else if(DeviceStatus.enterMode == ENTER_PAUSE_WORK)
         {
@@ -125,12 +130,15 @@ void code_key_read(void)	//每10ms执行一次
             DeviceStatus.startWork = ON;                                // 设置工作指示标志
             if(DeviceStatus.workState == 8) RELAY_3_H;                  // 烤鸡功能 开转插
             DeviceStatus.enterMode = ENTER_START_WORK;                  // 倒计时加热
+            FunctionReportValue('A', '1');                          // 上报计时工作状态：开
             DeviceStatus.knob = KNOB_DISABLE;                           // 禁用旋钮
         }
         else
         {
             DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;
             DeviceStatus.enterMode = ENTER_CHOICE_FUNCTION;             // 标志为选择功能模式
+            FunctionReportValue('P', '0');
+            FunctionReportValue('A', '0');
         }
         DeviceStatus.flashLight = 0;
         

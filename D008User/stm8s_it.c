@@ -361,9 +361,10 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     
     if(++BatCount >= 2)
     {
-      
+#if 0
         Send_BAT_Voltage(Get_UP_NTC_Value());
         Send_BAT_Voltage(Get_DOWN_NTC_Value());
+#endif
         BatCount = 0;
     }
 
@@ -543,10 +544,12 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     if(UART1_GetITStatus(UART1_IT_RXNE ) != RESET)  // 接收数据
     {
         Recv = UART1_ReceiveData8();
+        
         RxRecvBuffer[DataSize++] = Recv;
         if(DataSize > BUFFERSIZE-1) DataSize = 0;
 //        UART1_SendByte(Recv);
 //        UART3_SendByte(Recv);
+        
     } 
  }
 #endif /* (STM8S208) || (STM8S207) || (STM8S103) || (STM8S903) || (STM8AF62Ax) || (STM8AF52Ax) */

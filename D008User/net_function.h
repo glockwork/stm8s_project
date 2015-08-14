@@ -35,5 +35,6 @@ uint8_t stringCMP(uint8_t *str1, uint8_t *str2, uint8_t len);
 void FunctionResponse(uint8_t *MessageID, uint8_t Token);
 void PingResponse(uint8_t* MessageID);
 void FunctionReport(uint8_t function);
+void FunctionReportValue(uint8_t function, uint8_t value);
 
 #endif

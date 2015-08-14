@@ -36,7 +36,7 @@ void Send_BAT_Voltage(uint16_t AD_Value)
       str[1] = '.';
       str[2] = (int)val % 100 / 10 + 0x30;
       str[3] = (int)val % 10 + 0x30;
-      
+     
       for (; i < 4; i++)
         UART3_SendByte(str[i]);
       UART3_SendByte('V');
